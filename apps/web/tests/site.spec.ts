@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test("home page renders the search interface", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Search like a library/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Search and read ABLibrary/ })).toBeVisible();
   await expect(page.getByPlaceholder("Search libraries...")).toBeVisible();
 });
 

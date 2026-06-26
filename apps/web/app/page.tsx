@@ -4,9 +4,9 @@ import Link from "next/link";
 
 const examples = ["الكافي", "إنما الأعمال", "التفويض", "الحمد"];
 const shelves = [
-  ["ABLibrary", "Structured Arabic indexes", "Books, pages, metadata, and tables of contents from the live source."],
-  ["eShia", "Volumes and page scans", "Read text with footnotes, source links, and volume-aware navigation."],
-  ["Reader", "Calm reading controls", "Tune font size, line height, width, theme, and columns."],
+  ["ABLibrary", "Book search", "Find titles, open pages, and use the available table of contents."],
+  ["eShia", "Volume reader", "Move by volume and page, with footnotes kept separate from the main text."],
+  ["Reader", "Reading settings", "Adjust theme, font size, line height, page width, and columns."],
 ];
 
 export default function Home() {
@@ -18,12 +18,12 @@ export default function Home() {
 
         <div className="relative rounded-[2rem] border border-line/80 bg-[rgb(var(--sheet))]/70 p-5 shadow-soft backdrop-blur sm:p-7" dir="ltr">
           <div className="absolute -right-5 -top-5 hidden h-24 w-24 rounded-full border border-accent/40 bg-paper/50 sm:block" />
-          <p className="mb-4 w-fit rounded-full border border-accent/40 bg-accent/10 px-3 py-1 font-sans text-xs font-semibold tracking-[0.18em] text-accent">LIVE ISLAMIC LIBRARY</p>
+          <p className="mb-4 w-fit rounded-full border border-accent/40 bg-accent/10 px-3 py-1 font-sans text-xs font-semibold tracking-[0.18em] text-accent">MAKTABA KIT</p>
           <h1 className="max-w-3xl font-sans text-4xl font-bold leading-[1.08] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-            Search like a library. Read like a book.
+            Search and read ABLibrary and eShia from one place.
           </h1>
           <p className="mt-5 max-w-2xl font-sans text-lg leading-8 text-muted">
-            A unified search and reader for ABLibrary and eShia, with live source pages, tables of contents, volume navigation, and a reading mode built for long Arabic and Persian texts.
+            Look up books, search inside texts, open the original source page, and read with practical controls for Arabic and Persian material.
           </p>
 
           <div className="mt-7 max-w-2xl">
