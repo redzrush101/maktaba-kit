@@ -14,12 +14,12 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       <Header />
       <section className="mx-auto max-w-4xl px-4 pb-8">
         <div className="mb-4 rounded-xl border border-line bg-paper/70 p-2 shadow-sm">
-          <SearchBox defaultValue={q} action="/books" placeholder="ابحث عن كتاب أو مؤلف..." />
+          <SearchBox defaultValue={q} action="/books" placeholder="ابحث عن كتاب أو مؤلف..." defaultSource={source} />
         </div>
         <h1 className="mb-4 font-arabic text-2xl font-semibold">الكتب</h1>
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {res.data.map((book) => {
-            const href = book.source === "eshia" ? `/read/eshia/${book.id}/${book.volume ?? "1"}/1` : `/read/ablibrary/${book.id}/1`;
+            const href = `/books/${book.source}/${book.id}${book.source === "eshia" && book.volume ? `?volume=${book.volume}` : ""}`;
             return (
               <Link key={`${book.source}-${book.id}`} href={href} className="rounded-xl border border-line bg-paper/75 p-3 shadow-sm transition hover:shadow-soft">
                 <SourceBadge source={book.source} />

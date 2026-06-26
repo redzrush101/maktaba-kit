@@ -93,7 +93,7 @@ export class AblibrarySource {
   }
 
   private book(b: AnyObj): Book {
-    return { source: this.name, id: String(b.id ?? ""), title: b.title, author: this.author(b), volume: b.volumeLabel ?? (b.volumeNumber ? String(b.volumeNumber) : undefined), pages: b.pagesCount, url: b.id ? `https://v4.ablibrary.net/books/${b.id}` : undefined, meta: { source: b.source } };
+    return { source: this.name, id: String(b.id ?? ""), title: b.title, author: this.author(b), volume: b.volumeLabel ?? (b.volumeNumber ? String(b.volumeNumber) : undefined), pages: b.pagesCount, url: b.id ? `https://v4.ablibrary.net/books/${b.id}` : undefined, meta: { source: b.source, categories: b.categories, contributors: b.contributors, languages: b.languages } };
   }
 
   private author(b: AnyObj): string | undefined {

@@ -11,6 +11,8 @@ export async function GET(req: Request) {
   const bookId = url.searchParams.get("bookId") ?? undefined;
   const volume = url.searchParams.get("volume") ?? undefined;
   const strictVolume = url.searchParams.get("strictVolume") === "1";
+  const exact = url.searchParams.get("exact") === "1";
+  const page = Math.max(1, Number(url.searchParams.get("page") ?? 1));
   const client = createMaktabaClient({ timeoutMs: 18_000 });
-  return NextResponse.json(await client.search(q, { source, limit, bookId, volume, strictVolume }));
+  return NextResponse.json(await client.search(q, { source, limit, page, bookId, volume, strictVolume, exact }));
 }

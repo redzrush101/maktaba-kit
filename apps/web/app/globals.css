@@ -22,9 +22,23 @@
   --sheet-soft: 246 243 236;
 }
 
+.sepia {
+  --ink: 53 44 33;
+  --paper: 239 229 207;
+  --muted: 117 100 78;
+  --line: 211 194 163;
+  --accent: 119 83 52;
+  --sheet: 248 239 218;
+  --sheet-soft: 242 230 204;
+}
+
 html { background: rgb(var(--paper)); color: rgb(var(--ink)); }
 body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; }
 ::selection { background: rgb(var(--accent) / .22); }
+
+.reader-shell { max-width: 72rem; }
+[data-reader-width="narrow"] .reader-shell { max-width: 54rem; }
+[data-reader-width="wide"] .reader-shell { max-width: 86rem; }
 
 .reader-text {
   direction: rtl;
@@ -33,6 +47,16 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
   letter-spacing: .005em;
   text-wrap: pretty;
 }
+
+[data-reader-size="sm"] .reader-text { font-size: 1rem; }
+[data-reader-size="lg"] .reader-text { font-size: clamp(1.2rem, 1.35vw, 1.42rem); }
+[data-reader-size="xl"] .reader-text { font-size: clamp(1.35rem, 1.6vw, 1.65rem); }
+[data-reader-leading="compact"] .reader-text { line-height: 1.65; }
+[data-reader-leading="spacious"] .reader-text { line-height: 2.25; }
+[data-reader-font="serif"] .reader-text { font-family: Georgia, "Times New Roman", serif; }
+[data-reader-font="sans"] .reader-text { font-family: var(--font-sans), system-ui, sans-serif; }
+[data-reader-columns="single"] .reader-text { columns: 1 !important; }
+[data-reader-columns="double"] .reader-text { columns: 2; column-gap: 3rem; }
 
 .book-sheet {
   background:
@@ -61,4 +85,11 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
   color: inherit;
   border-radius: .25rem;
   padding: 0 .15rem;
+}
+
+.library-arch {
+  background:
+    linear-gradient(180deg, rgb(var(--accent) / .12), transparent 42%),
+    repeating-linear-gradient(90deg, transparent 0 3.8rem, rgb(var(--line) / .45) 3.85rem 3.9rem),
+    rgb(var(--sheet));
 }

@@ -78,7 +78,8 @@ export class EshiaSource {
 
   async info(bookId: string, volume = "1"): Promise<Book> {
     const p = (await this.read(bookId, [1], volume))[0];
-    return { source: this.name, id: bookId, title: p.bookTitle, author: p.author, volume: p.volume, url: `${this.base}/${bookId}/${volume}/1`, meta: p.meta };
+    const maxPage = typeof p.meta?.maxPage === "number" ? p.meta.maxPage : undefined;
+    return { source: this.name, id: bookId, title: p.bookTitle, author: p.author, volume: p.volume, pages: maxPage, url: `${this.base}/${bookId}/${volume}/1`, meta: p.meta };
   }
 
   async toc(bookId: string, volume = "1", limit = 100): Promise<TocItem[]> {
@@ -143,6 +144,16 @@ export class EshiaSource {
     });
 
     const fallback = clean(content.text());
+    const volumes = $("select[name='volume'] option").toArray().map((option) => ({
+      label: clean($(option).text()),
+      value: $(option).attr("value") ?? clean($(option).text()),
+    })).filter((item, index, arr) => item.value && arr.findIndex((x) => x.value === item.value) === index);
+    let maxPage: number | undefined;
+    $("a[href]").each((_, a) => {
+      if (!$(a).text().includes("آخر")) return;
+      const m = ($(a).attr("href") ?? "").match(/\/(\d+)\/(\d+)\/(\d+)/);
+      if (m && m[1] === bookId && m[2] === volume) maxPage = Number(m[3]);
+    });
     return {
       source: this.name,
       bookId,
@@ -153,7 +164,7 @@ export class EshiaSource {
       author: author || undefined,
       url,
       footnotes,
-      meta: { titleLine },
+      meta: { titleLine, maxPage, volumes },
     };
   }
 }
