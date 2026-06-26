@@ -20,14 +20,34 @@ export class EshiaSource {
   }
 
   async search(query: string, limit = 10, page = 1, bookId?: string): Promise<SearchResult[]> {
-    const q = encodeURIComponent(query.replaceAll(" ", "_"));
+    const q = encodeURIComponent(query.trim().replaceAll(" ", "_"));
     const path = bookId ? `/search/${bookId}/${q}` : `/search/${q}`;
-    const $ = await this.soup(`${this.base}${path}${page > 1 ? `?page=${page}` : ""}`);
     const out: SearchResult[] = [];
+    const wantsAll = limit <= 0;
+    const target = wantsAll ? Number.POSITIVE_INFINITY : limit;
+    const first = await this.soup(`${this.base}${path}${page > 1 ? `?page=${page}` : ""}`);
+    const total = Number(clean(first(".result_count").first().text()).replace(/\D/g, "")) || 0;
+    this.parseSearchRows(first, out, target);
+
+    const totalPages = total ? Math.ceil(total / 10) : 1;
+    const pagesNeeded = wantsAll ? totalPages : Math.ceil(limit / 10);
+    const maxPage = Math.min(page + Math.max(1, pagesNeeded) - 1, page + 199, totalPages || page);
+    for (let current = page + 1; current <= maxPage && out.length < target; current++) {
+      const before = out.length;
+      const $ = await this.soup(`${this.base}${path}?page=${current}`);
+      this.parseSearchRows($, out, target);
+      if (out.length === before) break;
+    }
+    return out;
+  }
+
+  private parseSearchRows($: cheerio.CheerioAPI, out: SearchResult[], limit: number) {
     $("#search-result tr").each((_, tr) => {
       if (out.length >= limit) return;
-      const a = $(tr).find("div.result a[href]").first();
-      if (!a.length) return;
+      const links = $(tr).find("div.result a[href]").toArray();
+      const link = links.find((el) => Boolean(($(el).attr("href") ?? "").trim()));
+      if (!link) return;
+      const a = $(link);
       const href = a.attr("href") ?? "";
       const text = clean(a.text());
       const snippet = clean($(tr).find("div.preview").text());
@@ -41,9 +61,9 @@ export class EshiaSource {
         page: m?.[3] ? Number(m[3]) : undefined,
         snippet: snippet || undefined,
         url: href.startsWith("http") ? href : `${this.base}${href}`,
+        hitCount: Number(clean($(".result_count").first().text()).replace(/\D/g, "")) || undefined,
       });
     });
-    return out;
   }
 
   async read(bookId: string, pages: number[], volume = "1"): Promise<Page[]> {

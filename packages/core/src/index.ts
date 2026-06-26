@@ -45,12 +45,17 @@ export class MaktabaClient {
   }
 
   async search(query: string, options: SearchOptions = {}): Promise<ApiResponse<SearchResult[]>> {
+    const cleanQuery = query.trim();
     const limit = options.limit ?? 10;
-    const { data, errors } = await this.many<SearchResult>(options.source ?? "all", (s) => s.search(query, limit, options.page ?? 1, options.bookId));
-    let out = options.volume ? data.filter((r) => String(r.volume ?? "") === String(options.volume)) : data;
-    if (options.exact) out = out.filter((r) => [r.snippet, r.bookTitle].filter(Boolean).join(" ").includes(query));
-    out = out.map((r) => ({ ...r, snippet: trim(r.snippet, options.context ?? 320, query) }));
-    return { ok: !errors.length || out.length > 0, data: out, errors, query };
+    const wantsAll = limit <= 0;
+    const fetchLimit = wantsAll ? 0 : (options.volume ? Math.max(limit, 50) : limit);
+    const { data, errors } = await this.many<SearchResult>(options.source ?? "all", (s) => s.search(cleanQuery, fetchLimit, options.page ?? 1, options.bookId));
+    const volumeFiltered = options.volume ? data.filter((r) => String(r.volume ?? "") === String(options.volume)) : data;
+    let out = options.volume && (volumeFiltered.length || options.strictVolume) ? volumeFiltered : data;
+    if (!wantsAll) out = out.slice(0, limit);
+    if (options.exact) out = out.filter((r) => [r.snippet, r.bookTitle].filter(Boolean).join(" ").includes(cleanQuery));
+    out = out.map((r) => ({ ...r, snippet: trim(r.snippet, options.context ?? 320, cleanQuery) }));
+    return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
   }
 
   async books(query: string, options: SearchOptions = {}): Promise<ApiResponse<Book[]>> {

@@ -77,4 +77,5 @@ export type SearchOptions = {
   volume?: string;
   exact?: boolean;
   context?: number;
+  strictVolume?: boolean;
 };
