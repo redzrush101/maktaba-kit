@@ -14,9 +14,9 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       <Header />
       <section className="mx-auto max-w-4xl px-4 pb-8">
         <div className="mb-4 rounded-xl border border-line bg-paper/70 p-2 shadow-sm">
-          <SearchBox defaultValue={q} action="/books" placeholder="ابحث عن كتاب أو مؤلف..." defaultSource={source} />
+          <SearchBox defaultValue={q} action="/books" placeholder="Search books or authors..." defaultSource={source} />
         </div>
-        <h1 className="mb-4 font-arabic text-2xl font-semibold">الكتب</h1>
+        <h1 className="mb-4 font-sans text-2xl font-semibold">Books</h1>
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {res.data.map((book) => {
             const href = `/books/${book.source}/${book.id}${book.source === "eshia" && book.volume ? `?volume=${book.volume}` : ""}`;

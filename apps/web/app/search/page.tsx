@@ -21,10 +21,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <div className="mb-4 rounded-xl border border-line bg-paper/70 p-2 shadow-sm">
           <SearchBox defaultValue={q} defaultSource={source} hiddenFields={{ bookId, volume }} />
         </div>
-        <div className="mb-4 flex items-end justify-between gap-3" dir="rtl">
+        <div className="mb-4 flex items-end justify-between gap-3" dir="ltr">
           <div>
             <p className="font-sans text-sm text-muted" dir="ltr">{res.data.length} results</p>
-            <h1 className="font-arabic text-2xl font-semibold">{q ? `نتائج البحث عن: ${q}` : "ابدأ بحثاً جديداً"}</h1>
+            <h1 className="font-sans text-2xl font-semibold">{q ? `Search results for: ${q}` : "Start a new search"}</h1>
             {bookId && <p className="mt-1 font-sans text-xs text-muted" dir="ltr">inside {source}:{bookId}{volume ? `/${volume}` : ""} · page {page} · showing {limit === 0 ? "all" : `up to ${limit}`}</p>}
           </div>
           <a href={`/books?q=${encodeURIComponent(q)}`} className="rounded-full border border-line px-3 py-1.5 font-sans text-xs text-muted hover:text-ink">Book search</a>
@@ -59,7 +59,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             <a aria-disabled={!res.data.length || (limit > 0 && res.data.length < limit)} className="rounded-full bg-ink px-4 py-2 text-paper aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(page + 1), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}) }).toString()}`}>Next</a>
           </nav>
         )}
-        {q && !res.data.length && <p className="mt-5 rounded-3xl border border-line p-8 text-center font-arabic text-xl text-muted">لا توجد نتائج. جرّب عبارة أقصر أو مصدراً مختلفاً.</p>}
+        {q && !res.data.length && <p className="mt-5 rounded-3xl border border-line p-8 text-center font-sans text-xl text-muted">No results. Try a shorter phrase or a different source.</p>}
       </section>
     </main>
   );

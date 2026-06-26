@@ -13,9 +13,9 @@ export function ResultCard({ result, query }: { result: SearchResult; query: str
         {result.volume && <span className="font-sans text-xs text-muted">vol. {result.volume}</span>}
         {result.page && <span className="font-sans text-xs text-muted">p. {result.page}</span>}
       </div>
-      <h3 className="font-arabic text-lg font-semibold text-ink">{result.bookTitle || "نتيجة من المكتبة"}</h3>
+      <h3 className="font-arabic text-lg font-semibold text-ink">{result.bookTitle || "Library result"}</h3>
       {result.author && <p className="mt-0.5 font-arabic text-sm text-muted">{result.author}</p>}
-      <p className="result-snippet mt-2 font-arabic text-sm leading-7 text-ink/90">{highlight(result.snippet || "لا يوجد مقتطف متاح.", query)}</p>
+      <p className="result-snippet mt-2 font-arabic text-sm leading-7 text-ink/90">{highlight(result.snippet || "No excerpt available.", query)}</p>
       <Link href={href} className="mt-3 inline-flex rounded-full bg-ink px-3 py-1 font-sans text-[11px] font-medium text-paper">Open page</Link>
     </article>
   );
