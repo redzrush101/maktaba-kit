@@ -1,10 +1,13 @@
 import type { Book, SearchOptions, SearchResult } from "./models";
 
 const diacritics = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+const latinDiacritics = /[\u0300-\u036f]/g;
 const punctuation = /[\s،؛,.!?؟:()[\]{}«»"'`ـ\-_/\\]+/g;
 
 export function normalizeArabic(input: string | undefined) {
   return (input ?? "")
+    .normalize("NFD")
+    .replace(latinDiacritics, "")
     .replace(diacritics, "")
     .replace(/[أإآٱ]/g, "ا")
     .replace(/[يى]/g, "ی")

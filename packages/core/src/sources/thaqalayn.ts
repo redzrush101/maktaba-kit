@@ -23,18 +23,22 @@ export class ThaqalaynSource {
   }
 
   async books(query: string, limit = 10, page = 1): Promise<Book[]> {
-    const result = await this.multiSearch([{ collection: "books", q: query || "*", query_by: "nameEn,nameAr,authorName,blurbEn", per_page: limit, page }]);
-    return arrayHits(result).map((hit) => {
+    const queries = bookQueries(query);
+    const results = await Promise.all(queries.map((q) => this.multiSearch([{ collection: "books", q, query_by: "nameEn,nameAr,authorName,blurbEn", per_page: limit, page }])));
+    const seen = new Set<string>();
+    return results.flatMap((result) => arrayHits(result)).flatMap((hit) => {
       const doc = asObj(hit.document) ?? {};
       const id = asString(doc.number) ?? asString(doc.id) ?? "";
-      return {
+      if (!id || seen.has(id)) return [];
+      seen.add(id);
+      return [{
         source: this.name,
         id,
         title: asString(doc.nameEn) ?? asString(doc.nameAr),
         author: asString(doc.authorName),
-        url: id ? `${this.base}/book/${id}` : undefined,
+        url: `${this.base}/book/${id}`,
         meta: { nameAr: doc.nameAr, blurbEn: doc.blurbEn, type: doc.type },
-      };
+      }];
     });
   }
 
@@ -74,7 +78,8 @@ export class ThaqalaynSource {
   }
 
   async toc(bookId: string, limit = 100): Promise<TocItem[]> {
-    const html = await this.getText(`${this.base}/book/${bookId}`);
+    const rootBookId = bookId.split("/").filter(Boolean)[0] ?? bookId;
+    const html = await this.getText(`${this.base}/book/${rootBookId}`);
     const $ = cheerio.load(html);
     const items: TocItem[] = [];
     $('a[href^="/chapter/"]').each((_, a) => {
@@ -175,6 +180,14 @@ export class ThaqalaynSource {
       meta: { chapterName: asString(asObj(data.isPartOf)?.name) },
     };
   }
+}
+
+function bookQueries(query: string) {
+  const clean = query.trim();
+  if (!clean || clean === "*") return ["*"];
+  const variants = [clean];
+  if (/^[a-z\s-]+$/i.test(clean) && !/^al[-\s]/i.test(clean)) variants.push(`Al-${clean}`, `Al ${clean}`);
+  return [...new Set(variants)];
 }
 
 function arrayHits(result: AnyObj) {

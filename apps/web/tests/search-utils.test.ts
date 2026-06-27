@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { includesNormalized, matchesAllTokens, normalizeArabic, scoreBook, searchTokens } from "@maktaba-kit/core";
 
 describe("search utilities", () => {
-  it("normalizes Arabic variants and diacritics", () => {
+  it("normalizes Arabic and Latin variants and diacritics", () => {
     expect(normalizeArabic("إِنَّ الأَعْمَالَ")).toBe("ان الاعمال");
     expect(normalizeArabic("كتاب كافي")).toBe("کتاب کافی");
+    expect(normalizeArabic("Al-Kāfi")).toBe("al-kafi");
   });
 
   it("matches normalized phrases", () => {
