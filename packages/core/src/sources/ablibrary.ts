@@ -111,7 +111,7 @@ export class AblibrarySource {
         .filter((item) => normalizeTitle(item.title ?? "") === title)
         .filter((item) => !author || normalizeText(item.author ?? "") === author)
         .sort((a, b) => volumeNumber(a.volume) - volumeNumber(b.volume))
-        .map((item) => ({ label: item.volume ? `Volume ${item.volume}` : item.title ?? item.id, value: item.id }));
+        .map((item) => ({ label: item.volume ?? item.title ?? item.id, value: item.id }));
     } catch {
       return [];
     }
