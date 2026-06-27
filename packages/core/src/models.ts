@@ -78,6 +78,7 @@ export type SearchOptions = {
   exact?: boolean;
   context?: number;
   strictVolume?: boolean;
+  matchAll?: boolean;
 };
 
 export interface LibrarySource {

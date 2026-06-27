@@ -19,13 +19,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const page = Math.max(1, Number(params.page ?? 1));
   const strictVolume = params.strictVolume === "1";
   const exact = params.exact === "1";
+  const matchAll = params.matchAll === "1";
   const client = createMaktabaClient({ timeoutMs: 18_000 });
 
   const shouldSearchText = q && (mode === "all" || mode === "text");
   const shouldSearchBooks = q && !bookId && (mode === "all" || mode === "books");
   const [textRes, booksRes] = await Promise.all([
-    shouldSearchText ? client.search(q, { source, bookId, volume, limit, page, strictVolume, exact }) : emptySearch(),
-    shouldSearchBooks ? client.books(q, { source, limit: mode === "all" ? 8 : limit, page }) : emptyBooks(),
+    shouldSearchText ? client.search(q, { source, bookId, volume, limit, page, strictVolume, exact, matchAll }) : emptySearch(),
+    shouldSearchBooks ? client.books(q, { source, limit: mode === "all" ? 8 : limit, page, matchAll }) : emptyBooks(),
   ]);
   const errors = [...textRes.errors, ...booksRes.errors];
 
@@ -69,6 +70,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           )}
           {volume && <label className="inline-flex items-center gap-1"><input type="checkbox" name="strictVolume" value="1" defaultChecked={strictVolume} /> strict volume</label>}
           <label className="inline-flex items-center gap-1"><input type="checkbox" name="exact" value="1" defaultChecked={exact} /> exact phrase</label>
+          <label className="inline-flex items-center gap-1"><input type="checkbox" name="matchAll" value="1" defaultChecked={matchAll} /> all words</label>
           <button className="rounded-lg bg-ink px-3 py-1 text-paper">Apply</button>
         </form>
         {!!errors.length && <div className="mb-6 rounded-2xl border border-line bg-paper p-4 font-sans text-sm text-muted" dir="ltr">Some sources failed: {errors.map((e) => `${e.source}: ${e.message}`).join("; ")}</div>}
@@ -93,9 +95,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
         {q && mode !== "books" && (
           <nav className="mt-5 flex items-center justify-center gap-2 font-sans text-sm" dir="ltr" aria-label="Search pagination">
-            <Link aria-disabled={page <= 1} className="rounded-full border border-line px-4 py-2 text-ink aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, mode, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(Math.max(1, page - 1)), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}) }).toString()}`}>Previous</Link>
+            <Link aria-disabled={page <= 1} className="rounded-full border border-line px-4 py-2 text-ink aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, mode, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(Math.max(1, page - 1)), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}), ...(matchAll ? { matchAll: "1" } : {}) }).toString()}`}>Previous</Link>
             <span className="text-muted">Page {page}</span>
-            <Link aria-disabled={!textRes.data.length || (limit > 0 && textRes.data.length < limit)} className="rounded-full bg-ink px-4 py-2 text-paper aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, mode, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(page + 1), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}) }).toString()}`}>Next</Link>
+            <Link aria-disabled={!textRes.data.length || (limit > 0 && textRes.data.length < limit)} className="rounded-full bg-ink px-4 py-2 text-paper aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, mode, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(page + 1), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}), ...(matchAll ? { matchAll: "1" } : {}) }).toString()}`}>Next</Link>
           </nav>
         )}
         {q && !textRes.data.length && !booksRes.data.length && <p className="mt-5 rounded-3xl border border-line p-8 text-center font-sans text-xl text-muted">No results. Try a shorter phrase or a different source.</p>}

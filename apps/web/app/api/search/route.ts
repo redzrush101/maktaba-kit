@@ -14,5 +14,6 @@ export async function GET(req: Request) {
     volume: url.searchParams.get("volume") ?? undefined,
     strictVolume: url.searchParams.get("strictVolume") === "1",
     exact: url.searchParams.get("exact") === "1",
+    matchAll: url.searchParams.get("matchAll") === "1",
   }));
 }

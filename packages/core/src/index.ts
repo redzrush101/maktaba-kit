@@ -2,12 +2,14 @@ import { MemoryCache } from "./cache";
 import { HttpClient } from "./http";
 import type { ApiResponse, Book, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
 import { parseRef } from "./refs";
+import { dedupeBooks, dedupeSearchResults, includesNormalized, matchesAllTokens, normalizeArabic, sortBooks, sortSearchResults } from "./search-utils";
 import { AblibrarySource } from "./sources/ablibrary";
 import { EshiaSource } from "./sources/eshia";
 
 export * from "./cache";
 export * from "./models";
 export * from "./refs";
+export * from "./search-utils";
 
 export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean; maxCacheEntries?: number };
 
@@ -48,18 +50,34 @@ export class MaktabaClient {
     const limit = options.limit ?? 10;
     const wantsAll = limit <= 0;
     const fetchLimit = wantsAll ? 0 : (options.volume ? Math.max(limit, 50) : limit);
-    const { data, errors } = await this.many<SearchResult>(options.source ?? "all", (s) => s.search(cleanQuery, fetchLimit, options.page ?? 1, options.bookId));
+    const primary = await this.many<SearchResult>(options.source ?? "all", (s) => s.search(cleanQuery, fetchLimit, options.page ?? 1, options.bookId));
+    let data = primary.data;
+    const errors = primary.errors;
+    if (data.length < Math.min(3, limit || 3)) {
+      const normalizedQuery = normalizeArabic(cleanQuery);
+      if (normalizedQuery && normalizedQuery !== cleanQuery) {
+        const fallback = await this.many<SearchResult>(options.source ?? "all", (s) => s.search(normalizedQuery, fetchLimit, options.page ?? 1, options.bookId));
+        data = data.concat(fallback.data);
+        errors.push(...fallback.errors);
+      }
+    }
     const volumeFiltered = options.volume ? data.filter((r) => String(r.volume ?? "") === String(options.volume)) : data;
     let out = options.volume && (volumeFiltered.length || options.strictVolume) ? volumeFiltered : data;
+    out = dedupeSearchResults(out);
+    if (options.exact) out = out.filter((r) => includesNormalized([r.snippet, r.bookTitle].filter(Boolean).join(" "), cleanQuery));
+    if (options.matchAll) out = out.filter((r) => matchesAllTokens([r.snippet, r.bookTitle, r.author].filter(Boolean).join(" "), cleanQuery));
+    out = sortSearchResults(out, cleanQuery);
     if (!wantsAll) out = out.slice(0, limit);
-    if (options.exact) out = out.filter((r) => [r.snippet, r.bookTitle].filter(Boolean).join(" ").includes(cleanQuery));
     out = out.map((r) => ({ ...r, snippet: trim(r.snippet, options.context ?? 320, cleanQuery) }));
     return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
   }
 
   async books(query: string, options: SearchOptions = {}): Promise<ApiResponse<Book[]>> {
-    const { data, errors } = await this.many<Book>(options.source ?? "all", (s) => s.books(query, options.limit ?? 10, options.page ?? 1));
-    return { ok: !errors.length || data.length > 0, data, errors, query };
+    const cleanQuery = query.trim();
+    const { data, errors } = await this.many<Book>(options.source ?? "all", (s) => s.books(cleanQuery, options.limit ?? 10, options.page ?? 1));
+    let out = sortBooks(dedupeBooks(data), cleanQuery);
+    if (options.matchAll) out = out.filter((book) => matchesAllTokens([book.title, book.author].filter(Boolean).join(" "), cleanQuery));
+    return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
   }
 
   async read(ref: string): Promise<ApiResponse<Page[]>> {
@@ -116,8 +134,19 @@ function toSourceError(source: SourceName, error: unknown): SourceError {
 function trim(text: string | undefined, n: number, needle?: string) {
   if (!text || text.length <= n) return text;
   const compact = text.replace(/\s+/g, " ").trim();
-  const idx = needle ? compact.indexOf(needle) : -1;
+  const idx = needle ? normalizedIndexOf(compact, needle) : -1;
   const start = idx > 0 ? Math.max(0, idx - Math.floor(n / 3)) : 0;
   const out = compact.slice(start, start + n);
   return `${start ? "…" : ""}${out}${start + n < compact.length ? "…" : ""}`;
+}
+
+function normalizedIndexOf(text: string, needle: string) {
+  const direct = text.indexOf(needle);
+  if (direct >= 0) return direct;
+  const normalizedNeedle = normalizeArabic(needle);
+  if (!normalizedNeedle) return -1;
+  const normalizedText = normalizeArabic(text);
+  const normalizedIndex = normalizedText.indexOf(normalizedNeedle);
+  if (normalizedIndex < 0) return -1;
+  return Math.min(text.length - 1, normalizedIndex);
 }

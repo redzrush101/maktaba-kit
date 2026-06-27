@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { readerPath, type SearchResult } from "@maktaba-kit/core";
+import { normalizeArabic, readerPath, searchTokens, type SearchResult } from "@maktaba-kit/core";
 import { SourceBadge } from "./SourceBadge";
 
 export function ResultCard({ result, query }: { result: SearchResult; query: string }) {
@@ -20,8 +20,13 @@ export function ResultCard({ result, query }: { result: SearchResult; query: str
 }
 
 function highlight(text: string, query: string) {
-  const q = query.trim();
-  if (!q || !text.includes(q)) return text;
-  const parts = text.split(q);
-  return parts.flatMap((p, i) => i === parts.length - 1 ? [p] : [p, <mark key={i}>{q}</mark>]);
+  const phrase = normalizeArabic(query);
+  const tokens = searchTokens(query).filter((token) => token.length > 1);
+  if (!phrase && !tokens.length) return text;
+
+  return text.split(/(\s+)/).map((part, index) => {
+    const normalized = normalizeArabic(part);
+    const matched = normalized && (phrase.includes(normalized) || normalized.includes(phrase) || tokens.some((token) => normalized.includes(token) || token.includes(normalized)));
+    return matched ? <mark key={`${part}-${index}`}>{part}</mark> : part;
+  });
 }
