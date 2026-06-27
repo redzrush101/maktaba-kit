@@ -168,10 +168,7 @@ export class AblibrarySource {
     walk(page);
     return {
       text: main.map((part) => part.trim()).filter(Boolean).join("\n"),
-      footnotes: splitFootnotes(footnoteTexts.join("\n")).map((text, index) => {
-        const label = text.match(/^\(?\s*[\d٠-٩۰-۹]+\s*\)?/)?.[0]?.trim() ?? `(${index + 1})`;
-        return { id: String(index + 1), label, text: text.replace(/^\(?\s*[\d٠-٩۰-۹]+\s*\)?\s*/, "") };
-      }),
+      footnotes: parseFootnotes(footnoteTexts.join("\n")),
     };
   }
 }
@@ -189,9 +186,15 @@ function volumeNumber(value: string | undefined) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.MAX_SAFE_INTEGER;
 }
 
-function splitFootnotes(text: string) {
+function parseFootnotes(text: string) {
   const normalized = text.trim();
   if (!normalized) return [];
-  const parts = normalized.split(/(?=\(?\s*[\d٠-٩۰-۹]+\s*\)\s*)/).map((part) => part.trim()).filter(Boolean);
-  return parts.length ? parts : [normalized];
+  const pattern = /\(\s*([\d٠-٩۰-۹]+)\s*\)\s*([\s\S]*?)(?=\(\s*[\d٠-٩۰-۹]+\s*\)|$)/g;
+  const matches = [...normalized.matchAll(pattern)];
+  if (!matches.length) return [{ id: "1", label: "(1)", text: normalized }];
+  return matches.map((match, index) => ({
+    id: match[1] || String(index + 1),
+    label: `( ${match[1] || index + 1} )`,
+    text: (match[2] ?? "").trim(),
+  })).filter((note) => note.text);
 }
