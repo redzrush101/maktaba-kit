@@ -75,10 +75,13 @@ def analyze_ablibrary() -> ProbeResult:
     except Exception as exc:
         suggest = {"error": str(exc)}
 
+    same_title_volumes = [book for book in books.get("books", []) if book.get("title") == first.get("title") and book.get("volumeLabel")]
     return ProbeResult("ablibrary", True, {
         "supports_book_search": bool(books.get("books")),
         "supports_metadata": bool((details.get("book") or {}).get("contributors") or first.get("categories")),
         "supports_categories_in_book_metadata": bool(first.get("categories")),
+        "supports_related_volumes_by_title_search": len(same_title_volumes) > 1,
+        "sample_related_volumes": [{"id": book.get("id"), "volume": book.get("volumeLabel")} for book in same_title_volumes[:8]],
         "supports_toc": bool(toc.get("items")),
         "supports_full_text_search": bool(search.get("results")),
         "supports_suggestions": bool(suggest.get("suggestions")),

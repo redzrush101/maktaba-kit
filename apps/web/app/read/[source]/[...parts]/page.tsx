@@ -63,11 +63,15 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
               <input name="q" className="w-full rounded-lg border border-line bg-transparent px-2 py-1.5 font-sans text-sm text-ink outline-none placeholder:text-muted" placeholder="Search inside book" />
               <button className="w-full rounded-lg bg-accent px-2 py-1.5 font-sans text-xs font-semibold text-paper">Search in book</button>
             </form>
-            {source === "eshia" && volumes.length > 0 && (
+            {volumes.length > 1 && (
               <div className="mt-3">
                 <p className="mb-1">Volumes</p>
                 <div className="flex flex-wrap gap-1" dir="ltr">
-                  {volumes.map((v) => <Link key={v.value} className={`rounded-md border border-line px-2 py-1 ${v.value === volume ? "bg-ink text-paper" : "text-ink"}`} href={`/read/eshia/${bookId}/${v.value}/1`}>{v.label}</Link>)}
+                  {volumes.map((v) => {
+                    const href = sourceName === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
+                    const active = sourceName === "eshia" ? v.value === volume : v.value === bookId;
+                    return <Link key={v.value} className={`rounded-md border border-line px-2 py-1 ${active ? "bg-ink text-paper" : "text-ink"}`} href={href}>{v.label}</Link>;
+                  })}
                 </div>
               </div>
             )}

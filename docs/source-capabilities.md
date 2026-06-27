@@ -11,6 +11,7 @@ Supported and evidenced:
 - Table of contents via `BookService/TableOfContents`.
 - Full-text search via `SearchService/Search` and in-book search via existing adapter fallback/endpoint.
 - Page reading via `BookService/Contents`.
+- Related volumes can be inferred by querying the same title and matching author/title records; each volume is a distinct ABLibrary book id.
 
 Limitations found:
 

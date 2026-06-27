@@ -41,7 +41,11 @@ export default async function BookPage({ params, searchParams }: { params: Promi
           <section className="mt-4 rounded-2xl border border-line bg-paper/60 p-4">
             <h2 className="mb-3 font-sans text-xl font-semibold">Volumes</h2>
             <div className="flex flex-wrap gap-2" dir="ltr">
-              {volumes.map((v) => <Link key={v.value} href={`/books/${source}/${bookId}?volume=${v.value}`} className={`rounded-lg border border-line px-3 py-1.5 font-sans text-sm ${v.value === volume ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>)}
+              {volumes.map((v) => {
+                const href = source === "eshia" ? `/books/${source}/${bookId}?volume=${v.value}` : `/books/ablibrary/${v.value}`;
+                const active = source === "eshia" ? v.value === volume : v.value === bookId;
+                return <Link key={v.value} href={href} className={`rounded-lg border border-line px-3 py-1.5 font-sans text-sm ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
+              })}
             </div>
           </section>
         )}

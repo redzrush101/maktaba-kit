@@ -82,7 +82,9 @@ export class AblibrarySource {
 
   async info(bookId: string): Promise<Book> {
     const data = await this.post("ablibrary.services.book_service.BookService", "Details", { id: bookId });
-    return this.book(asObj(data.book) ?? {});
+    const book = this.book(asObj(data.book) ?? {});
+    const volumes = await this.volumesFor(book);
+    return { ...book, meta: { ...(book.meta ?? {}), volumes } };
   }
 
   async toc(bookId: string, limit = 100): Promise<TocItem[]> {
@@ -96,6 +98,23 @@ export class AblibrarySource {
   async suggest(query: string, limit = 10) {
     const data = await this.post("ablibrary.services.search_service.SearchService", "Suggest", { query, paginate: { page: 1, perPage: limit } });
     return asArray(data.suggestions).slice(0, limit);
+  }
+
+  private async volumesFor(book: Book): Promise<Array<{ label: string; value: string }>> {
+    if (!book.title) return [];
+    try {
+      const data = await this.post("ablibrary.services.book_service.BookService", "List", { query: book.title, page: 1, perPage: 100 });
+      const title = normalizeTitle(book.title);
+      const author = normalizeText(book.author ?? "");
+      return arrayOfObjects(data.books)
+        .map((item) => this.book(item))
+        .filter((item) => normalizeTitle(item.title ?? "") === title)
+        .filter((item) => !author || normalizeText(item.author ?? "") === author)
+        .sort((a, b) => volumeNumber(a.volume) - volumeNumber(b.volume))
+        .map((item) => ({ label: item.volume ? `Volume ${item.volume}` : item.title ?? item.id, value: item.id }));
+    } catch {
+      return [];
+    }
   }
 
   private book(b: AnyObj): Book {
@@ -164,4 +183,17 @@ function asNumber(value: unknown): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   return undefined;
+}
+
+function normalizeText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function normalizeTitle(value: string) {
+  return normalizeText(value).replace(/[\s،,:؛-]*\(?\s*(?:ج|جلد|volume|vol\.?|v\.?)\s*[\d۰-۹٠-٩]+\s*\)?\s*$/i, "");
+}
+
+function volumeNumber(value: string | undefined) {
+  const parsed = Number(value?.replace(/[^\d.]/g, "") ?? "");
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.MAX_SAFE_INTEGER;
 }
