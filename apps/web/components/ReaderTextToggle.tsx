@@ -26,7 +26,7 @@ export function ReaderTextToggle({ arabic, english, twoColumn }: { arabic: strin
         </div>
       )}
       {english && (
-        <div className="mt-3 whitespace-pre-line rounded-xl border border-line/60 bg-paper/40 p-4 font-sans text-sm leading-7 text-ink" dir="ltr">
+        <div className="reader-english mt-3 whitespace-pre-line rounded-xl border border-line/60 bg-paper/40 p-4" dir="ltr">
           {english}
         </div>
       )}

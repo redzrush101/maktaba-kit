@@ -58,6 +58,18 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
 [data-reader-columns="single"] .reader-text { columns: 1 !important; }
 [data-reader-columns="double"] .reader-text { columns: 2; column-gap: 3rem; }
 
+.reader-english {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+[data-reader-size="sm"] .reader-english { font-size: 0.875rem; }
+[data-reader-size="lg"] .reader-english { font-size: 1.05rem; }
+[data-reader-size="xl"] .reader-english { font-size: 1.15rem; }
+[data-reader-leading="compact"] .reader-english { line-height: 1.5; }
+[data-reader-leading="spacious"] .reader-english { line-height: 2; }
+
 .book-sheet {
   background:
     linear-gradient(90deg, rgb(255 255 255 / .025), transparent 10%, transparent 90%, rgb(0 0 0 / .08)),
