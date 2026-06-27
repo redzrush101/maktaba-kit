@@ -14,7 +14,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
       <Header />
       <section className="mx-auto max-w-4xl px-4 pb-8">
         <div className="mb-4 rounded-xl border border-line bg-paper/70 p-2 shadow-sm">
-          <SearchBox defaultValue={q} action="/books" placeholder="Search books or authors..." defaultSource={source} />
+          <SearchBox defaultValue={q} action="/search" placeholder="Search books or authors..." defaultSource={source} defaultMode="books" />
         </div>
         <h1 className="mb-4 font-sans text-2xl font-semibold">Books</h1>
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">

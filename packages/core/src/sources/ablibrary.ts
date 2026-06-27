@@ -20,7 +20,7 @@ export class AblibrarySource {
     return data;
   }
 
-  async books(query: string, limit = 10, page = 1, fuzzy = false): Promise<Book[]> {
+  async books(query: string, limit = 10, page = 1, fuzzy = true): Promise<Book[]> {
     const payload: AnyObj = { query, page, perPage: limit };
     if (fuzzy) payload.fuzzy = { enabled: true, fields: ["FIELD_TITLE", "FIELD_CONTRIBUTOR_NAME", "FIELD_CATEGORY_NAME"] };
     const data = await this.post("ablibrary.services.book_service.BookService", "List", payload);

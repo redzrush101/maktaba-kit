@@ -48,7 +48,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
 
         <section className="mt-4 rounded-2xl border border-line bg-paper/60 p-4">
           <h2 className="mb-3 font-sans text-xl font-semibold">Search inside this book</h2>
-          <SearchBox hiddenFields={{ bookId, volume: source === "eshia" ? volume : undefined }} defaultSource={source} placeholder="Search inside this book..." />
+          <SearchBox hiddenFields={{ bookId, volume: source === "eshia" ? volume : undefined }} defaultSource={source} defaultMode="text" showMode={false} placeholder="Search inside this book..." />
         </section>
 
         <section className="mt-4 rounded-2xl border border-line bg-paper/60 p-4">
