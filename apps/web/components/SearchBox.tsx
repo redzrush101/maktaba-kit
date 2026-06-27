@@ -50,6 +50,7 @@ export function SearchBox({
           <option value="all">All sources</option>
           <option value="ablibrary">ABLibrary</option>
           <option value="eshia">eShia</option>
+          <option value="thaqalayn">Thaqalayn</option>
         </select>
         <button className="min-h-10 rounded-lg bg-ink px-4 font-sans text-xs font-semibold text-paper transition hover:opacity-90">Search</button>
       </div>

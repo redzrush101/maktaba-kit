@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 
-type SourceName = "ablibrary" | "eshia";
+type SourceName = "ablibrary" | "eshia" | "thaqalayn";
 
 export function PageJump({ source, bookId, volume, page, maxPage }: { source: SourceName; bookId: string; volume?: string; page: number; maxPage?: number }) {
   const [value, setValue] = useState(String(page));
   const go = () => {
     const parsed = Math.max(1, Math.min(maxPage ?? Number.POSITIVE_INFINITY, Number(value) || 1));
-    window.location.href = source === "eshia" ? `/read/eshia/${bookId}/${volume ?? "1"}/${parsed}` : `/read/ablibrary/${bookId}/${parsed}`;
+    window.location.href = source === "eshia" ? `/read/eshia/${bookId}/${volume ?? "1"}/${parsed}` : source === "thaqalayn" ? `/read/thaqalayn/${bookId}/${parsed}` : `/read/ablibrary/${bookId}/${parsed}`;
   };
   return (
     <div className="mt-3 space-y-1.5" dir="ltr">

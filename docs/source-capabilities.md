@@ -34,6 +34,24 @@ Limitations found:
 - No stable public standalone author/category catalog was identified from the probed pages.
 - Metadata depth varies per page/book and should be treated as partial.
 
+## Thaqalayn
+
+Supported and evidenced:
+
+- Public site access is allowed by `robots.txt`; `/api/` and `/super/` are disallowed and are not used.
+- Public sitemaps expose books, chapters, hadith pages, Quran pages, and duas.
+- Hadith full-text search is available through the public Typesense endpoint used by the site frontend.
+- Book search is available through the public Typesense `books` collection.
+- Book table of contents can be parsed from public `/book/<id>` pages.
+- Individual hadith reading is available from structured Typesense documents and public `/hadith/<volume>/<section>/<chapter>/<number>` pages.
+- Hadith metadata includes book title, chapter title, author, English translation, and grading data when present.
+
+Limitations found:
+
+- Thaqalayn is hadith/chapter based rather than page based, so reader URLs represent chapter + hadith number instead of physical pages.
+- Arabic book-title search in the `books` collection is weaker than hadith text search.
+- Quran, duas, and narrator collections exist, but are intentionally not integrated yet because current Maktaba Kit source support is centered on books/text reading.
+
 ## Implementable features from these capabilities
 
 Good fits now:

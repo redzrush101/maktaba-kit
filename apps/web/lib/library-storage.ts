@@ -1,6 +1,6 @@
 export type LibraryItem = {
   ref: string;
-  source: "ablibrary" | "eshia";
+  source: "ablibrary" | "eshia" | "thaqalayn";
   bookId: string;
   volume?: string;
   page: number;

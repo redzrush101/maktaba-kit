@@ -1,4 +1,4 @@
-export type SourceName = "ablibrary" | "eshia";
+export type SourceName = "ablibrary" | "eshia" | "thaqalayn";
 export type SourceSelect = SourceName | "all";
 
 export type Book = {

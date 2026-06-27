@@ -13,10 +13,10 @@ type VolumeOption = { label: string; value: string };
 
 export default async function ReaderPage({ params }: { params: Promise<{ source: string; parts: string[] }> }) {
   const { source, parts } = await params;
-  const sourceName: "ablibrary" | "eshia" = source === "eshia" ? "eshia" : "ablibrary";
-  const bookId = parts[0];
+  const sourceName: "ablibrary" | "eshia" | "thaqalayn" = source === "eshia" ? "eshia" : source === "thaqalayn" ? "thaqalayn" : "ablibrary";
+  const bookId = sourceName === "thaqalayn" ? parts.slice(0, -1).join("/") : parts[0];
   const volume = sourceName === "eshia" ? parts[1] ?? "1" : undefined;
-  const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
+  const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : sourceName === "thaqalayn" ? `thaqalayn:${bookId}/${parts.at(-1) ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
   const client = createMaktabaClient({ timeoutMs: 18_000 });
   const [res, infoRes, tocRes] = await Promise.all([client.read(ref), client.info(ref), client.toc(ref, 80)]);
   const page = res.data[0];
@@ -38,7 +38,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
     page: pageNo,
     title: page?.bookTitle || info?.title,
     author: page?.author || info?.author,
-    url: sourceName === "eshia" ? `/read/eshia/${bookId}/${volume ?? "1"}/${pageNo}` : `/read/ablibrary/${bookId}/${pageNo}`,
+    url: readerPath({ source: sourceName, bookId, volume, page: pageNo }),
   };
 
   return (

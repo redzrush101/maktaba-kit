@@ -27,7 +27,7 @@ export function MobileReaderToolbar({
   nextHref: string;
   toc: TocItem[];
   volumes: VolumeOption[];
-  source: "ablibrary" | "eshia";
+  source: "ablibrary" | "eshia" | "thaqalayn";
   bookId: string;
   volume?: string;
   page: number;
@@ -41,7 +41,7 @@ export function MobileReaderToolbar({
 
   function goToPage() {
     const parsed = Math.max(1, Math.min(maxPage ?? Number.POSITIVE_INFINITY, Number(jump) || 1));
-    window.location.href = source === "eshia" ? `/read/eshia/${bookId}/${volume ?? "1"}/${parsed}` : `/read/ablibrary/${bookId}/${parsed}`;
+    window.location.href = source === "eshia" ? `/read/eshia/${bookId}/${volume ?? "1"}/${parsed}` : source === "thaqalayn" ? `/read/thaqalayn/${bookId}/${parsed}` : `/read/ablibrary/${bookId}/${parsed}`;
   }
 
   return (
@@ -75,7 +75,7 @@ export function MobileReaderToolbar({
                   <p className="mb-2 font-semibold text-ink">Volumes</p>
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {volumes.map((v) => {
-                      const href = source === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
+                      const href = source === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : source === "thaqalayn" ? `/read/thaqalayn/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
                       const active = source === "eshia" ? v.value === volume : v.value === bookId;
                       return <Link key={v.value} href={href} className={`min-h-11 rounded-full border border-line px-4 py-2 ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
                     })}

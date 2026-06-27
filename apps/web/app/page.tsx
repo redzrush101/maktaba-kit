@@ -23,7 +23,7 @@ export default function Home() {
             Search the library.
           </h1>
           <p className="mt-5 max-w-2xl font-sans text-lg leading-8 text-muted">
-            Find a book, author, or passage across ABLibrary and eShia. Open the page, check the table of contents, and continue reading from there.
+            Find a book, author, or passage across ABLibrary, eShia, and Thaqalayn. Open the page, check the table of contents, and continue reading from there.
           </p>
 
           <div className="mt-7 max-w-2xl">

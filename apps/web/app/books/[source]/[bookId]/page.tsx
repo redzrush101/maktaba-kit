@@ -7,13 +7,15 @@ import Link from "next/link";
 export default async function BookPage({ params, searchParams }: { params: Promise<{ source: string; bookId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { source, bookId } = await params;
   const { volume = "1" } = await searchParams;
-  const ref = source === "eshia" ? `eshia:${bookId}/${volume}/1` : `ablibrary:${bookId}/1`;
+  const sourceName = source === "eshia" ? "eshia" : source === "thaqalayn" ? "thaqalayn" : "ablibrary";
+  const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/1` : sourceName === "thaqalayn" ? `thaqalayn:${bookId}` : `ablibrary:${bookId}/1`;
   const client = createMaktabaClient({ timeoutMs: 18_000 });
   const [infoRes, tocRes] = await Promise.all([client.info(ref), client.toc(ref, 120)]);
   const book = infoRes.data[0];
   const volumes = (Array.isArray(book?.meta?.volumes) ? book.meta.volumes : []) as Array<{ label: string; value: string }>;
   const categories = (Array.isArray(book?.meta?.categories) ? book.meta.categories : []) as Array<{ name?: string }>;
-  const readHref = readerPath({ source: source === "eshia" ? "eshia" : "ablibrary", bookId, volume, page: 1 });
+  const firstToc = tocRes.data[0];
+  const readHref = firstToc ? readerPath({ source: firstToc.source, bookId: firstToc.bookId, volume: firstToc.volume, page: firstToc.page ?? 1 }) : readerPath({ source: sourceName, bookId, volume, page: 1 });
 
   return (
     <main>
@@ -42,7 +44,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
             <h2 className="mb-3 font-sans text-xl font-semibold">Volumes</h2>
             <div className="flex flex-wrap gap-2" dir="ltr">
               {volumes.map((v) => {
-                const href = source === "eshia" ? `/books/${source}/${bookId}?volume=${v.value}` : `/books/ablibrary/${v.value}`;
+                const href = source === "eshia" ? `/books/${source}/${bookId}?volume=${v.value}` : source === "thaqalayn" ? `/books/thaqalayn/${v.value}` : `/books/ablibrary/${v.value}`;
                 const active = source === "eshia" ? v.value === volume : v.value === bookId;
                 return <Link key={v.value} href={href} className={`rounded-lg border border-line px-3 py-1.5 font-sans text-sm ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
               })}

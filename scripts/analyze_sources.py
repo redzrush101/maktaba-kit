@@ -112,8 +112,27 @@ def analyze_eshia() -> ProbeResult:
     })
 
 
+def analyze_thaqalayn() -> ProbeResult:
+    robots_status, _, robots = request("https://thaqalayn.net/robots.txt")
+    _, _, books_xml = request("https://thaqalayn.net/sitemap/books.xml")
+    _, _, chapters_xml = request("https://thaqalayn.net/sitemap/chapters.xml")
+    _, _, hadith_xml = request("https://thaqalayn.net/sitemap/hadith-0.xml")
+    _, _, book_html = request("https://thaqalayn.net/book/1")
+    body = json.dumps({"searches": [{"collection": "hadiths", "q": "الحمد", "preset": "hadiths-full-arabic", "per_page": 3, "page": 1}]}).encode()
+    _, _, search_json = request("https://api.thaqalayn.net:8108/multi_search", body, {"Content-Type": "application/json", "X-TYPESENSE-API-KEY": "AmswDdjQNKm0xVNBLhUpkgjLj4JnNNbh"})
+    search = json.loads(search_json or "{}")
+    return ProbeResult("thaqalayn", True, {
+        "robots_allows_public_pages": robots_status == 200 and "Allow: /" in robots and "Disallow: /api/" in robots,
+        "books_in_sitemap": books_xml.count("<loc>"),
+        "chapters_in_sitemap": chapters_xml.count("<loc>"),
+        "hadith_in_sitemap_0": hadith_xml.count("<loc>"),
+        "supports_book_toc_pages": "/chapter/" in book_html,
+        "supports_hadith_typesense_search": bool((search.get("results") or [{}])[0].get("hits")),
+    })
+
+
 def main() -> None:
-    results = [analyze_ablibrary(), analyze_eshia()]
+    results = [analyze_ablibrary(), analyze_eshia(), analyze_thaqalayn()]
     print(json.dumps([r.__dict__ for r in results], ensure_ascii=False, indent=2))
 
 

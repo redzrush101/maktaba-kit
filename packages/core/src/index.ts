@@ -5,6 +5,7 @@ import { parseRef } from "./refs";
 import { normalizeArabic, postProcessBooks, postProcessSearchResults } from "./search-utils";
 import { AblibrarySource } from "./sources/ablibrary";
 import { EshiaSource } from "./sources/eshia";
+import { ThaqalaynSource } from "./sources/thaqalayn";
 
 export * from "./cache";
 export * from "./models";
@@ -23,6 +24,7 @@ export class MaktabaClient {
     this.sources = {
       ablibrary: new AblibrarySource(http),
       eshia: new EshiaSource(http),
+      thaqalayn: new ThaqalaynSource(http),
     };
   }
 

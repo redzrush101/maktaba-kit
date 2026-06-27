@@ -1,7 +1,7 @@
 import { createMaktabaClient, type ApiResponse, type SourceSelect } from "@maktaba-kit/core";
 import { NextResponse } from "next/server";
 
-const sources = new Set<SourceSelect>(["all", "ablibrary", "eshia"]);
+const sources = new Set<SourceSelect>(["all", "ablibrary", "eshia", "thaqalayn"]);
 
 export function requestUrl(req: Request) {
   return new URL(req.url);
