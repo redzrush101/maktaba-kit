@@ -4,9 +4,9 @@ import Link from "next/link";
 
 const examples = ["الكافي", "إنما الأعمال", "التفويض", "الحمد"];
 const shelves = [
-  ["ABLibrary", "Book search", "Find titles, open pages, and use the available table of contents."],
-  ["eShia", "Volume reader", "Move by volume and page, with footnotes kept separate from the main text."],
-  ["Reader", "Reading settings", "Adjust theme, font size, line height, page width, and columns."],
+  ["Catalog", "Books and authors", "Search titles, authors, or the text itself."],
+  ["Reading", "Volumes and pages", "Open a book and move through its volumes, chapters, and pages."],
+  ["Library", "Bookmarks", "Keep track of pages you want to return to."],
 ];
 
 export default function Home() {
@@ -20,10 +20,10 @@ export default function Home() {
           <div className="absolute -right-5 -top-5 hidden h-24 w-24 rounded-full border border-accent/40 bg-paper/50 sm:block" />
           <p className="mb-4 w-fit rounded-full border border-accent/40 bg-accent/10 px-3 py-1 font-sans text-xs font-semibold tracking-[0.18em] text-accent">MAKTABA KIT</p>
           <h1 className="max-w-3xl font-sans text-4xl font-bold leading-[1.08] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-            Search and read ABLibrary and eShia from one place.
+            Search the library.
           </h1>
           <p className="mt-5 max-w-2xl font-sans text-lg leading-8 text-muted">
-            Look up books, search inside texts, open the original source page, and read with practical controls for Arabic and Persian material.
+            Find a book, author, or passage across ABLibrary and eShia. Open the page, check the table of contents, and continue reading from there.
           </p>
 
           <div className="mt-7 max-w-2xl">
@@ -65,7 +65,7 @@ export default function Home() {
                 ))}
               </div>
               <div className="mx-auto mt-10 h-px w-3/4 bg-line" />
-              <p className="mt-5 text-center font-sans text-sm text-muted">A live shelf: open a book, move through pages, and return to the index.</p>
+              <p className="mt-5 text-center font-sans text-sm text-muted">Search, open a result, and read from the source text.</p>
             </div>
           </div>
         </div>
