@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BookCard } from "@/components/BookCard";
 import { Header } from "@/components/Header";
 import { ResultCard } from "@/components/ResultCard";
+import { SearchBox } from "@/components/SearchBox";
 
 type SearchMode = "all" | "text" | "books";
 
@@ -40,42 +41,17 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           <h1 className="font-sans text-2xl font-semibold">{q ? `Search results for: ${q}` : "Search"}</h1>
           {bookId && <p className="mt-1 font-sans text-xs text-muted" dir="ltr">inside {source}:{bookId}{volume ? `/${volume}` : ""} · page {page} · showing {limit === 0 ? "all" : `up to ${limit}`}</p>}
         </div>
-        <form className="mb-5 rounded-xl border border-line bg-paper/70 p-2 font-sans text-xs text-muted shadow-sm" dir="ltr">
-          {bookId && <input type="hidden" name="bookId" value={bookId} />}
-          {volume && <input type="hidden" name="volume" value={volume} />}
-          <input type="hidden" name="page" value="1" />
-          <div className="flex flex-col gap-1.5 sm:flex-row">
-            <input name="q" defaultValue={q} placeholder="Search books, authors, or text..." className="min-h-10 flex-1 rounded-lg bg-transparent px-2.5 font-sans text-base text-ink outline-none placeholder:text-muted" />
-            {!bookId && (
-              <select name="mode" defaultValue={mode} className="min-h-10 rounded-lg border border-line bg-paper px-2 font-sans text-xs text-muted outline-none" aria-label="Search type">
-                <option value="all">Everything</option>
-                <option value="text">Text only</option>
-                <option value="books">Books/authors</option>
-              </select>
-            )}
-            {bookId && <input type="hidden" name="mode" value={mode} />}
-            <select name="source" defaultValue={source} className="min-h-10 rounded-lg border border-line bg-paper px-2 font-sans text-xs text-muted outline-none" aria-label="Source">
-              <option value="all">All sources</option>
-              <option value="ablibrary">ABLibrary</option>
-              <option value="eshia">eShia</option>
-            </select>
-            <button className="min-h-10 rounded-lg bg-ink px-4 font-sans text-xs font-semibold text-paper transition hover:opacity-90">Search</button>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-line/70 pt-2">
-            <label>Results</label>
-            <select name="limit" defaultValue={limit === 0 ? "all" : String(limit)} className="rounded-lg border border-line bg-paper px-2 py-1 outline-none">
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-              <option value="200">200</option>
-              <option value="all">All from source</option>
-            </select>
-            {volume && <label className="inline-flex items-center gap-1"><input type="checkbox" name="strictVolume" value="1" defaultChecked={strictVolume} /> strict volume</label>}
-            <label className="inline-flex items-center gap-1"><input type="checkbox" name="exact" value="1" defaultChecked={exact} /> exact phrase</label>
-            <label className="inline-flex items-center gap-1"><input type="checkbox" name="matchAll" value="1" defaultChecked={matchAll} /> all words</label>
-          </div>
-        </form>
+        <div className="mb-5">
+          <SearchBox
+            defaultValue={q}
+            defaultSource={source}
+            defaultMode={mode}
+            showMode={!bookId}
+            hiddenFields={{ bookId, volume }}
+            placeholder="Search books, authors, or text..."
+            advanced={{ limit, strictVolume, exact, matchAll, showStrictVolume: Boolean(volume) }}
+          />
+        </div>
         {!!errors.length && <div className="mb-6 rounded-2xl border border-line bg-paper p-4 font-sans text-sm text-muted" dir="ltr">Some sources failed: {errors.map((e) => `${e.source}: ${e.message}`).join("; ")}</div>}
 
         {!!booksRes.data.length && (
