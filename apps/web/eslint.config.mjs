@@ -1,11 +1,12 @@
-import { FlatCompat } from "@eslint/eslintrc";
+import js from "@eslint/js";
+import globals from "globals";
+import tseslint from "typescript-eslint";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const compat = new FlatCompat({ baseDirectory: __dirname });
+const tsconfigRootDir = dirname(fileURLToPath(import.meta.url));
 
-const config = [
+const config = tseslint.config(
   {
     ignores: [
       ".next/**",
@@ -16,16 +17,32 @@ const config = [
       "test-results/**",
     ],
   },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
+    files: ["**/*.{js,mjs,cjs}"],
+    languageOptions: {
+      parserOptions: { tsconfigRootDir },
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: { tsconfigRootDir },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/consistent-type-imports": "error",
-      "import/no-anonymous-default-export": "off",
-      "react/no-unescaped-entities": "off",
-      "@next/next/no-html-link-for-pages": "off",
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
-];
+);
 
 export default config;

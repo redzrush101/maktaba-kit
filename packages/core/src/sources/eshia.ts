@@ -139,7 +139,7 @@ export class EshiaSource {
       }
       for (const noteText of splitFootnotes(text)) {
         const label = noteText.match(/^\[[\d٠-٩۰-۹]+\]/)?.[0] ?? `[${footnotes.length + 1}]`;
-        footnotes.push({ id: label.replace(/[\[\]]/g, ""), label, text: noteText.replace(/^\[[\d٠-٩۰-۹]+\]\s*/, "") });
+        footnotes.push({ id: label.replace(/[[\]]/g, ""), label, text: noteText.replace(/^\[[\d٠-٩۰-۹]+\]\s*/, "") });
       }
     });
 
