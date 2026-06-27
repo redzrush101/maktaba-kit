@@ -87,17 +87,25 @@ export class ThaqalaynSource {
     return { source: this.name, id: bookId, title, url: `${this.base}/book/${bookId}` };
   }
 
-  async toc(bookId: string, limit = 100): Promise<TocItem[]> {
-    const rootBookId = bookId.split("/").filter(Boolean)[0] ?? bookId;
+  async toc(bookId: string, limit = 500): Promise<TocItem[]> {
+    const parts = bookId.split("/").filter(Boolean);
+    const rootBookId = parts[0] ?? bookId;
     const html = await this.getText(`${this.base}/book/${rootBookId}`);
     const $ = cheerio.load(html);
     const items: TocItem[] = [];
+    const sectionFilter = parts.length >= 2 ? `${parts[0]}/${parts[1]}/` : null;
     $('a[href^="/chapter/"]').each((_, a) => {
       if (items.length >= limit) return;
       const href = $(a).attr("href") ?? "";
       const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
-      const title = cleanWhitespace($(a).text()).replace(/^(Chapter\s+\d+\s*-\s*)/i, "");
-      if (m && title) items.push({ source: this.name, bookId: `${m[1]}/${m[2]}/${m[3]}`, title, page: 1, url: `${this.base}${href}` });
+      if (!m) return;
+      if (sectionFilter && `${m[1]}/${m[2]}/` !== sectionFilter) return;
+      const raw = cleanWhitespace($(a).text());
+      const title = raw
+        .replace(/^(Chapter\s+\d+[a-zA-Z]?\s*[-–]?\s*)/i, "")
+        .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
+        .trim();
+      if (title) items.push({ source: this.name, bookId: `${m[1]}/${m[2]}/${m[3]}`, title, page: 1, url: `${this.base}${href}` });
     });
     return items;
   }
