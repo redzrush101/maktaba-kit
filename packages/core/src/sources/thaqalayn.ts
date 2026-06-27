@@ -237,12 +237,21 @@ export class ThaqalaynSource {
   private pageFromDoc(doc: AnyObj, bookId: string, page: number): Page {
     const result = this.searchResult(doc, "");
     const english = asString(doc.textEn)?.trim();
+    const rawText = asString(doc.textArDisplay) ?? asString(doc.textAr) ?? "";
     const grades = asArray(doc.grades).map((g) => cleanWhitespace(asString(g) ?? "")).filter(Boolean);
     const graderNames = asArray(doc.graderNames).map((g) => asString(g)).filter(Boolean) as string[];
     const gradings = grades.map((grade, i) => ({
       grade,
       grader: graderNames[i] ?? "",
     }));
+    // When textEn is missing but rawText contains both Arabic and English, split them
+    let text = rawText;
+    let metaEn = english;
+    if (!english && /[A-Za-z]/.test(rawText)) {
+      const split = splitArabicEnglish(rawText);
+      text = split.arabic || rawText;
+      metaEn = split.english || undefined;
+    }
     return {
       source: this.name,
       bookId,
@@ -250,10 +259,10 @@ export class ThaqalaynSource {
       volume: result.volume,
       bookTitle: result.bookTitle,
       author: result.author,
-      text: asString(doc.textArDisplay) ?? asString(doc.textAr) ?? "",
+      text,
       url: result.url,
       footnotes: grades.map((grade, index) => ({ id: String(index + 1), label: `Grade ${index + 1}`, text: grade })),
-      meta: { chapterName: result.meta?.chapterName, textEn: english, gradings },
+      meta: { chapterName: result.meta?.chapterName, textEn: metaEn, gradings },
     };
   }
 
@@ -340,8 +349,9 @@ function parseGradingCitation(citation: string): { grade: string; grader: string
 }
 
 function splitArabicEnglish(text: string): { arabic: string; english?: string } {
-  // The JSON-LD text often combines Arabic and English separated by \n\n
-  const idx = text.search(/\n{2,}(?=[A-Za-z0-9])/);
+  // The JSON-LD text combines Arabic and English separated by newlines.
+  // Look for the first newline followed by Latin text (English translation).
+  const idx = text.search(/\n+(?=[A-Za-z])/);
   if (idx > 0) {
     const arabic = text.slice(0, idx).trim();
     const english = text.slice(idx).trim();
