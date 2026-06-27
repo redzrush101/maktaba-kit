@@ -63,7 +63,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
             <div className="grid gap-2 md:grid-cols-2">
               {tocRes.data.map((item, i) => {
                 const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
-                return <Link key={`${item.title}-${i}`} href={href} className="rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 font-arabic text-ink hover:bg-ink/5" dir="rtl"><span>{item.title}</span>{item.page && <span className="mr-2 font-sans text-xs text-muted" dir="ltr">p. {item.page}</span>}</Link>;
+                return <Link key={`${item.title}-${i}`} href={href} className="rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 font-arabic text-ink hover:bg-ink/5" dir="auto"><span>{item.title}</span>{item.page && <span className="mr-2 font-sans text-xs text-muted" dir="ltr">p. {item.page}</span>}</Link>;
               })}
             </div>
           ) : <p className="font-sans text-muted">No table of contents available.</p>}

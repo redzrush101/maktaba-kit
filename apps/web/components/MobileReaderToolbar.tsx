@@ -57,7 +57,7 @@ export function MobileReaderToolbar({
             <div className="space-y-1 font-arabic text-sm leading-6" dir="rtl">
               {toc.length ? toc.map((item, index) => {
                 const href = item.source === "eshia" ? `/read/eshia/${item.bookId}/${item.volume ?? volume ?? "1"}/${item.page ?? 1}` : `/read/ablibrary/${item.bookId}/${item.page ?? 1}`;
-                return <Link key={`${item.title}-${index}`} href={href} className="block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink">{item.title}</Link>;
+                return <Link key={`${item.title}-${index}`} href={href} className="block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink" dir="auto">{item.title}</Link>;
               }) : <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>}
             </div>
           )}

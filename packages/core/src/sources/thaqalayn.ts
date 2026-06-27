@@ -153,7 +153,7 @@ export class ThaqalaynSource {
       volume: result.volume,
       bookTitle: result.bookTitle,
       author: result.author,
-      text: [asString(doc.textArDisplay) ?? asString(doc.textAr), english].filter(Boolean).join("\n\n"),
+      text: asString(doc.textArDisplay) ?? asString(doc.textAr) ?? "",
       url: result.url,
       footnotes: grades.map((grade, index) => ({ id: String(index + 1), label: `Grade ${index + 1}`, text: grade })),
       meta: { chapterName: result.meta?.chapterName, textEn: english },

@@ -30,6 +30,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const nextHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
   const twoColumnText = (page?.text.length ?? 0) > 1800;
+  const englishText = page?.meta?.textEn as string | undefined;
   const libraryItem = {
     itemRef: ref,
     source: sourceName,
@@ -87,7 +88,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
                 {tocRes.data.map((item, i) => {
                   const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
                   const active = item.page && item.page <= pageNo;
-                  return <Link key={`${item.title}-${i}`} href={href} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="rtl">{item.title}</Link>;
+                  return <Link key={`${item.title}-${i}`} href={href} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="auto">{item.title}</Link>;
                 })}
               </div>
             </nav>
@@ -104,7 +105,8 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
               <h1 className="font-arabic text-2xl font-bold leading-tight">{page.bookTitle || info?.title || page.label || "Reading page"}</h1>
               {(page.author || info?.author) && <p className="mt-1 font-arabic text-base text-muted">{page.author || info?.author}</p>}
               <div className="my-3 h-px bg-line" />
-              <div className={`reader-text whitespace-pre-line font-arabic text-ink ${twoColumnText ? "xl:columns-2 xl:gap-12" : ""}`}>{page.text || "No text is available for this page."}</div>
+              <div className={`reader-text whitespace-pre-line font-arabic text-ink ${twoColumnText ? "xl:columns-2 xl:gap-12" : ""}`} dir="rtl">{page.text || "No text is available for this page."}</div>
+              {englishText && <div className="mt-4 whitespace-pre-line rounded-xl border border-line/60 bg-paper/40 p-4 font-sans text-sm leading-7 text-ink" dir="ltr">{englishText}</div>}
               {!!page.footnotes?.length && (
                 <section className="mt-5 border-t border-line pt-4">
                   <h2 className="mb-2 font-sans text-lg font-semibold">Footnotes</h2>
