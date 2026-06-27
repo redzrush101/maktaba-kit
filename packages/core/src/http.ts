@@ -19,7 +19,7 @@ export class HttpClient {
       const res = await fetch(url, { ...init, method, headers, signal: controller.signal });
       const text = await res.text();
       const value = { status: res.status, text, url: res.url, headers: Object.fromEntries(res.headers.entries()) };
-      this.cache.set(key, value);
+      if (res.status < 400) this.cache.set(key, value);
       return value;
     } finally {
       clearTimeout(timer);

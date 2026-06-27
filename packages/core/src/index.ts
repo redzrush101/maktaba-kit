@@ -1,35 +1,34 @@
 import { MemoryCache } from "./cache";
 import { HttpClient } from "./http";
-import type { ApiResponse, Book, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
+import type { ApiResponse, Book, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
 import { parseRef } from "./refs";
 import { AblibrarySource } from "./sources/ablibrary";
 import { EshiaSource } from "./sources/eshia";
 
+export * from "./cache";
 export * from "./models";
 export * from "./refs";
 
-export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean };
-
-type Source = AblibrarySource | EshiaSource;
+export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean; maxCacheEntries?: number };
 
 export class MaktabaClient {
-  private ablibrary: AblibrarySource;
-  private eshia: EshiaSource;
+  private sources: Record<SourceName, LibrarySource>;
 
   constructor(options: MaktabaClientOptions = {}) {
-    const cache = new MemoryCache(options.ttlMs ?? 86_400_000, options.cache ?? true);
+    const cache = new MemoryCache(options.ttlMs ?? 86_400_000, options.cache ?? true, options.maxCacheEntries ?? 500);
     const http = new HttpClient(cache, options.timeoutMs ?? 20_000, options.userAgent ?? "Mozilla/5.0 MaktabaKit/0.1");
-    this.ablibrary = new AblibrarySource(http);
-    this.eshia = new EshiaSource(http);
+    this.sources = {
+      ablibrary: new AblibrarySource(http),
+      eshia: new EshiaSource(http),
+    };
   }
 
-  private selected(source: SourceSelect = "all"): Source[] {
-    if (source === "ablibrary") return [this.ablibrary];
-    if (source === "eshia") return [this.eshia];
-    return [this.ablibrary, this.eshia];
+  private selected(source: SourceSelect = "all"): LibrarySource[] {
+    if (source === "all") return Object.values(this.sources);
+    return [this.sources[source]];
   }
 
-  private async many<T>(source: SourceSelect, fn: (s: Source) => Promise<T[] | T>): Promise<{ data: T[]; errors: SourceError[] }> {
+  private async many<T>(source: SourceSelect, fn: (s: LibrarySource) => Promise<T[] | T>): Promise<{ data: T[]; errors: SourceError[] }> {
     const data: T[] = [];
     const errors: SourceError[] = [];
     await Promise.all(this.selected(source).map(async (s) => {
@@ -38,7 +37,7 @@ export class MaktabaClient {
         if (Array.isArray(res)) data.push(...res);
         else data.push(res);
       } catch (e) {
-        errors.push({ source: s.name as SourceName, code: e instanceof Error ? e.name : "Error", message: e instanceof Error ? e.message : String(e) });
+        errors.push(toSourceError(s.name, e));
       }
     }));
     return { data, errors };
@@ -65,33 +64,35 @@ export class MaktabaClient {
 
   async read(ref: string): Promise<ApiResponse<Page[]>> {
     const r = parseRef(ref);
-    const src = r.source === "ablibrary" ? this.ablibrary : this.eshia;
+    const src = this.sources[r.source];
     const pages = [r.page ?? 1];
     try {
-      const data = r.source === "eshia" ? await this.eshia.read(r.bookId, pages, r.volume ?? "1") : await this.ablibrary.read(r.bookId, pages);
+      const data = r.source === "eshia" ? await src.read(r.bookId, pages, r.volume ?? "1") : await src.read(r.bookId, pages);
       return { ok: true, data, errors: [] };
     } catch (e) {
-      return { ok: false, data: [], errors: [{ source: src.name, code: e instanceof Error ? e.name : "Error", message: e instanceof Error ? e.message : String(e) }] };
+      return { ok: false, data: [], errors: [toSourceError(src.name, e)] };
     }
   }
 
   async info(ref: string): Promise<ApiResponse<Book[]>> {
     const r = parseRef(ref);
+    const src = this.sources[r.source];
     try {
-      const data = [r.source === "eshia" ? await this.eshia.info(r.bookId, r.volume ?? "1") : await this.ablibrary.info(r.bookId)];
+      const data = [r.source === "eshia" ? await src.info(r.bookId, r.volume ?? "1") : await src.info(r.bookId)];
       return { ok: true, data, errors: [] };
     } catch (e) {
-      return { ok: false, data: [], errors: [{ source: r.source, code: e instanceof Error ? e.name : "Error", message: e instanceof Error ? e.message : String(e) }] };
+      return { ok: false, data: [], errors: [toSourceError(r.source, e)] };
     }
   }
 
   async toc(ref: string, limit = 100): Promise<ApiResponse<TocItem[]>> {
     const r = parseRef(ref);
+    const src = this.sources[r.source];
     try {
-      const data = r.source === "eshia" ? await this.eshia.toc(r.bookId, r.volume ?? "1", limit) : await this.ablibrary.toc(r.bookId, limit);
+      const data = r.source === "eshia" ? await src.toc(r.bookId, r.volume ?? "1", limit) : await src.toc(r.bookId, limit);
       return { ok: true, data, errors: [] };
     } catch (e) {
-      return { ok: false, data: [], errors: [{ source: r.source, code: e instanceof Error ? e.name : "Error", message: e instanceof Error ? e.message : String(e) }] };
+      return { ok: false, data: [], errors: [toSourceError(r.source, e)] };
     }
   }
 
@@ -102,6 +103,14 @@ export class MaktabaClient {
 
 export function createMaktabaClient(options?: MaktabaClientOptions) {
   return new MaktabaClient(options);
+}
+
+function toSourceError(source: SourceName, error: unknown): SourceError {
+  return {
+    source,
+    code: error instanceof Error ? error.name : "Error",
+    message: error instanceof Error ? error.message : String(error),
+  };
 }
 
 function trim(text: string | undefined, n: number, needle?: string) {

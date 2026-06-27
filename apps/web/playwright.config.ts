@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./tests",
+  testDir: "./e2e",
   timeout: 60_000,
   webServer: {
     command: "npm run dev -- -H 127.0.0.1 --port 3000",

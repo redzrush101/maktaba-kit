@@ -9,7 +9,8 @@
     "dev": "npm --workspace apps/web run dev",
     "build": "npm --workspace apps/web run build",
     "test": "npm --workspace apps/web run test",
-    "test:e2e": "npm --workspace apps/web run test:e2e"
+    "test:e2e": "npm --workspace apps/web run test:e2e",
+    "lint": "eslint apps/web packages/core --max-warnings=0"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.2",

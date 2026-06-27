@@ -1,4 +1,4 @@
-import { createMaktabaClient } from "@maktaba-kit/core";
+import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
 import { Header } from "@/components/Header";
 import { SearchBox } from "@/components/SearchBox";
 import { SourceBadge } from "@/components/SourceBadge";
@@ -13,7 +13,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
   const book = infoRes.data[0];
   const volumes = (Array.isArray(book?.meta?.volumes) ? book.meta.volumes : []) as Array<{ label: string; value: string }>;
   const categories = (Array.isArray(book?.meta?.categories) ? book.meta.categories : []) as Array<{ name?: string }>;
-  const readHref = source === "eshia" ? `/read/eshia/${bookId}/${volume}/1` : `/read/ablibrary/${bookId}/1`;
+  const readHref = readerPath({ source: source === "eshia" ? "eshia" : "ablibrary", bookId, volume, page: 1 });
 
   return (
     <main>
@@ -56,7 +56,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
           {tocRes.data.length ? (
             <div className="grid gap-2 md:grid-cols-2">
               {tocRes.data.map((item, i) => {
-                const href = item.source === "eshia" ? `/read/eshia/${item.bookId}/${item.volume ?? volume}/${item.page ?? 1}` : `/read/ablibrary/${item.bookId}/${item.page ?? 1}`;
+                const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
                 return <Link key={`${item.title}-${i}`} href={href} className="rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 font-arabic text-ink hover:bg-ink/5" dir="rtl"><span>{item.title}</span>{item.page && <span className="mr-2 font-sans text-xs text-muted" dir="ltr">p. {item.page}</span>}</Link>;
               })}
             </div>

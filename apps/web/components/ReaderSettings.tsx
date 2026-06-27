@@ -27,7 +27,13 @@ export function ReaderSettings() {
 
   useEffect(() => {
     const saved = window.localStorage.getItem("maktaba-reader-settings");
-    if (saved) setSettings({ ...defaults, ...JSON.parse(saved) });
+    if (!saved) return;
+
+    try {
+      setSettings({ ...defaults, ...JSON.parse(saved) });
+    } catch {
+      window.localStorage.removeItem("maktaba-reader-settings");
+    }
   }, []);
 
   useEffect(() => {

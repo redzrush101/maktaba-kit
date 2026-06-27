@@ -1,6 +1,8 @@
 import type { SourceName } from "./models";
 
 export type ParsedRef = { source: SourceName; bookId: string; volume?: string; page?: number };
+export type ReadPathInput = ParsedRef;
+export type BookPathInput = Pick<ParsedRef, "source" | "bookId" | "volume">;
 
 export function parseRef(input: string): ParsedRef {
   let ref = input.trim();
@@ -31,7 +33,12 @@ export function parseRef(input: string): ParsedRef {
   return { source: "ablibrary", bookId: parts[0], page: parts[1] ? Number(parts[1]) : undefined };
 }
 
-export function readerPath(ref: ParsedRef) {
+export function readerPath(ref: ReadPathInput) {
   if (ref.source === "eshia") return `/read/eshia/${ref.bookId}/${ref.volume ?? "1"}/${ref.page ?? 1}`;
   return `/read/ablibrary/${ref.bookId}/${ref.page ?? 1}`;
+}
+
+export function bookPath(ref: BookPathInput) {
+  const params = ref.source === "eshia" && ref.volume ? `?volume=${encodeURIComponent(ref.volume)}` : "";
+  return `/books/${ref.source}/${ref.bookId}${params}`;
 }

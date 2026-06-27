@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
-export function PageJump({ source, bookId, volume, page, maxPage }: { source: string; bookId: string; volume?: string; page: number; maxPage?: number }) {
+type SourceName = "ablibrary" | "eshia";
+
+export function PageJump({ source, bookId, volume, page, maxPage }: { source: SourceName; bookId: string; volume?: string; page: number; maxPage?: number }) {
   const [value, setValue] = useState(String(page));
   const go = () => {
     const parsed = Math.max(1, Math.min(maxPage ?? Number.POSITIVE_INFINITY, Number(value) || 1));

@@ -79,3 +79,13 @@ export type SearchOptions = {
   context?: number;
   strictVolume?: boolean;
 };
+
+export interface LibrarySource {
+  name: SourceName;
+  books(query: string, limit?: number, page?: number): Promise<Book[]>;
+  search(query: string, limit?: number, page?: number, bookId?: string): Promise<SearchResult[]>;
+  read(bookId: string, pages: number[], volume?: string): Promise<Page[]>;
+  info(bookId: string, volume?: string): Promise<Book>;
+  toc(bookId: string, volumeOrLimit?: string | number, limit?: number): Promise<TocItem[]>;
+  suggest(query: string, limit?: number): Promise<unknown[]>;
+}

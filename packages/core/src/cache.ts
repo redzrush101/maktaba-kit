@@ -2,7 +2,7 @@ type Entry = { value: unknown; expires: number };
 
 export class MemoryCache {
   private items = new Map<string, Entry>();
-  constructor(private ttlMs = 86_400_000, private enabled = true) {}
+  constructor(private ttlMs = 86_400_000, private enabled = true, private maxEntries = 500) {}
 
   get<T>(key: string): T | undefined {
     if (!this.enabled) return undefined;
@@ -17,6 +17,10 @@ export class MemoryCache {
 
   set(key: string, value: unknown) {
     if (!this.enabled) return;
+    if (this.items.size >= this.maxEntries && !this.items.has(key)) {
+      const oldestKey = this.items.keys().next().value;
+      if (oldestKey) this.items.delete(oldestKey);
+    }
     this.items.set(key, { value, expires: Date.now() + this.ttlMs });
   }
 }

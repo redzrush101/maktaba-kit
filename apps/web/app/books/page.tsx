@@ -1,4 +1,4 @@
-import { createMaktabaClient, type SourceSelect } from "@maktaba-kit/core";
+import { bookPath, createMaktabaClient, type SourceSelect } from "@maktaba-kit/core";
 import { Header } from "@/components/Header";
 import { SearchBox } from "@/components/SearchBox";
 import { SourceBadge } from "@/components/SourceBadge";
@@ -19,7 +19,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
         <h1 className="mb-4 font-sans text-2xl font-semibold">Books</h1>
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {res.data.map((book) => {
-            const href = `/books/${book.source}/${book.id}${book.source === "eshia" && book.volume ? `?volume=${book.volume}` : ""}`;
+            const href = bookPath({ source: book.source, bookId: book.id, volume: book.volume });
             return (
               <Link key={`${book.source}-${book.id}`} href={href} className="rounded-xl border border-line bg-paper/75 p-3 shadow-sm transition hover:shadow-soft">
                 <SourceBadge source={book.source} />

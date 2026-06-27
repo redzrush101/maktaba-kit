@@ -1,4 +1,4 @@
-import { createMaktabaClient } from "@maktaba-kit/core";
+import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
 import { Header } from "@/components/Header";
 import { PageJump } from "@/components/PageJump";
 import { ReaderSettings } from "@/components/ReaderSettings";
@@ -10,9 +10,10 @@ type VolumeOption = { label: string; value: string };
 
 export default async function ReaderPage({ params }: { params: Promise<{ source: string; parts: string[] }> }) {
   const { source, parts } = await params;
+  const sourceName = source === "eshia" ? "eshia" : "ablibrary";
   const bookId = parts[0];
-  const volume = source === "eshia" ? parts[1] ?? "1" : undefined;
-  const ref = source === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
+  const volume = sourceName === "eshia" ? parts[1] ?? "1" : undefined;
+  const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
   const client = createMaktabaClient({ timeoutMs: 18_000 });
   const [res, infoRes, tocRes] = await Promise.all([client.read(ref), client.info(ref), client.toc(ref, 80)]);
   const page = res.data[0];
@@ -22,8 +23,8 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const volumes = (Array.isArray(info?.meta?.volumes) ? info.meta.volumes : []) as VolumeOption[];
   const prevPage = Math.max(1, pageNo - 1);
   const nextPage = maxPage ? Math.min(maxPage, pageNo + 1) : pageNo + 1;
-  const prevHref = source === "eshia" ? `/read/eshia/${bookId}/${volume}/${prevPage}` : `/read/ablibrary/${bookId}/${prevPage}`;
-  const nextHref = source === "eshia" ? `/read/eshia/${bookId}/${volume}/${nextPage}` : `/read/ablibrary/${bookId}/${nextPage}`;
+  const prevHref = readerPath({ source: sourceName, bookId, volume, page: prevPage });
+  const nextHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
   const twoColumnText = (page?.text.length ?? 0) > 1800;
 
@@ -41,7 +42,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
               <Link aria-disabled={pageNo <= 1} className="inline-flex items-center justify-center gap-1 rounded-lg border border-line px-2 py-1.5 text-center font-semibold text-ink hover:bg-ink/5 aria-disabled:pointer-events-none aria-disabled:opacity-40" href={prevHref}><ChevronLeft size={14} /> Prev</Link>
               <Link aria-disabled={!!maxPage && pageNo >= maxPage} className="inline-flex items-center justify-center gap-1 rounded-lg bg-ink px-2 py-1.5 text-center font-semibold text-paper hover:opacity-90 aria-disabled:pointer-events-none aria-disabled:opacity-40" href={nextHref}>Next <ChevronRight size={14} /></Link>
             </div>
-            <PageJump source={source} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} />
+            <PageJump source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} />
             <form action="/search" className="mt-3 space-y-1.5" dir="ltr">
               <input type="hidden" name="source" value={source} />
               <input type="hidden" name="bookId" value={bookId} />
@@ -65,7 +66,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
               <p className="mb-2 font-sans font-semibold text-ink">Table of contents</p>
               <div className="space-y-1 font-arabic text-sm leading-6">
                 {tocRes.data.map((item, i) => {
-                  const href = item.source === "eshia" ? `/read/eshia/${item.bookId}/${item.volume ?? volume ?? "1"}/${item.page ?? 1}` : `/read/ablibrary/${item.bookId}/${item.page ?? 1}`;
+                  const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
                   const active = item.page && item.page <= pageNo;
                   return <Link key={`${item.title}-${i}`} href={href} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="rtl">{item.title}</Link>;
                 })}

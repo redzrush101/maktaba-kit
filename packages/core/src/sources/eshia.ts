@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import type { Book, Page, SearchResult, TocItem } from "../models";
-import { HttpClient } from "../http";
+import type { HttpClient } from "../http";
 
 export class EshiaSource {
   name = "eshia" as const;

@@ -1,11 +1,9 @@
 import Link from "next/link";
-import type { SearchResult } from "@maktaba-kit/core";
+import { readerPath, type SearchResult } from "@maktaba-kit/core";
 import { SourceBadge } from "./SourceBadge";
 
 export function ResultCard({ result, query }: { result: SearchResult; query: string }) {
-  const href = result.source === "eshia"
-    ? `/read/eshia/${result.bookId}/${result.volume ?? "1"}/${result.page ?? 1}`
-    : `/read/ablibrary/${result.bookId}/${result.page ?? 1}`;
+  const href = readerPath({ source: result.source, bookId: result.bookId ?? "", volume: result.volume, page: result.page });
   return (
     <article className="group rounded-xl border border-line/80 bg-paper/75 p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-soft" dir="rtl">
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
