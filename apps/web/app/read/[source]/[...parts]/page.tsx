@@ -32,6 +32,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
   const twoColumnText = (page?.text.length ?? 0) > 1800;
   const englishText = page?.meta?.textEn as string | undefined;
+  const gradings = page?.meta?.gradings as Array<{ grade: string; grader: string; reference?: string }> | undefined;
   const libraryItem = {
     itemRef: ref,
     source: sourceName,
@@ -107,7 +108,23 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
               {(page.author || info?.author) && <p className="mt-1 font-arabic text-base text-muted">{page.author || info?.author}</p>}
               <div className="my-3 h-px bg-line" />
               <ReaderTextToggle arabic={page.text || "No text is available for this page."} english={englishText} twoColumn={twoColumnText} />
-              {!!page.footnotes?.length && (
+              {gradings?.length ? (
+                <section className="mt-5 border-t border-line pt-4">
+                  <h2 className="mb-2 font-sans text-lg font-semibold">Hadith Grades</h2>
+                  <div className="space-y-3">
+                    {gradings.map((g, i) => {
+                      const isWeak = /\u0645\u062C\u0647\u0648\u0644|\u0636\u0639\u064A\u0641|\u0644\u0645\u0020\u064A\u062E\u0631\u062C/.test(g.grade);
+                      return (
+                        <div key={i} className="flex flex-wrap items-start gap-3 rounded-lg border border-line/70 bg-ink/[0.025] p-3 font-sans text-sm">
+                          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isWeak ? "border-yellow-600/50 bg-yellow-300/20 text-yellow-800 dark:border-yellow-500/40 dark:bg-yellow-600/30 dark:text-yellow-200" : "border-slate-400/50 bg-slate-300/20 text-slate-700 dark:border-slate-500/40 dark:bg-slate-700/30 dark:text-slate-200"}`} dir="auto">{g.grade}</span>
+                          {g.reference && <span className="text-muted" dir="auto">{g.reference}</span>}
+                          {g.grader && <span className="text-muted" dir="auto">{g.grader}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : !!page.footnotes?.length && (
                 <section className="mt-5 border-t border-line pt-4">
                   <h2 className="mb-2 font-sans text-lg font-semibold">Footnotes</h2>
                   <div className="space-y-2 font-arabic text-sm leading-6 text-ink/85">
@@ -119,7 +136,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
           ) : <p className="font-sans text-2xl text-muted">Could not load this page.</p>}
         </article>
       </section>
-      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} />
+      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} pageUrl={page?.url} />
       <div className="page-progress" aria-hidden="true"><span style={{ width: progress }} /></div>
     </main>
   );

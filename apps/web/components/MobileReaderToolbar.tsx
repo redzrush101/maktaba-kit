@@ -22,6 +22,7 @@ export function MobileReaderToolbar({
   page,
   maxPage,
   bookmarkItem,
+  pageUrl,
 }: {
   prevHref: string;
   nextHref: string;
@@ -33,6 +34,7 @@ export function MobileReaderToolbar({
   page: number;
   maxPage?: number;
   bookmarkItem: BookmarkInput;
+  pageUrl?: string;
 }) {
   const [panel, setPanel] = useState<Panel>(null);
   const [jump, setJump] = useState(String(page));
@@ -70,6 +72,11 @@ export function MobileReaderToolbar({
           )}
           {panel === "tools" && (
             <div className="space-y-4 font-sans text-sm">
+              {pageUrl && (
+                <a href={pageUrl} target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center rounded-xl border border-line text-ink">
+                  Open original
+                </a>
+              )}
               {volumes.length > 1 && (
                 <div>
                   <p className="mb-2 font-semibold text-ink">Volumes</p>

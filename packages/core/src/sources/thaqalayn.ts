@@ -145,7 +145,12 @@ export class ThaqalaynSource {
   private pageFromDoc(doc: AnyObj, bookId: string, page: number): Page {
     const result = this.searchResult(doc, "");
     const english = asString(doc.textEn)?.trim();
-    const grades = asArray(doc.grades).map((grade) => cleanWhitespace(asString(grade) ?? "")).filter(Boolean);
+    const grades = asArray(doc.grades).map((g) => cleanWhitespace(asString(g) ?? "")).filter(Boolean);
+    const graderNames = asArray(doc.graderNames).map((g) => asString(g)).filter(Boolean) as string[];
+    const gradings = grades.map((grade, i) => ({
+      grade,
+      grader: graderNames[i] ?? "",
+    }));
     return {
       source: this.name,
       bookId,
@@ -156,7 +161,7 @@ export class ThaqalaynSource {
       text: asString(doc.textArDisplay) ?? asString(doc.textAr) ?? "",
       url: result.url,
       footnotes: grades.map((grade, index) => ({ id: String(index + 1), label: `Grade ${index + 1}`, text: grade })),
-      meta: { chapterName: result.meta?.chapterName, textEn: english },
+      meta: { chapterName: result.meta?.chapterName, textEn: english, gradings },
     };
   }
 
@@ -167,17 +172,22 @@ export class ThaqalaynSource {
     const data = ldJson($).find((item) => asString(item["@type"]) === "Quotation");
     if (!data) throw new Error("Could not parse Thaqalayn hadith page");
     const bookTitle = asString(asObj(data.isBasedOn)?.name);
+    const rawText = asString(data.text) ?? "";
     const citations = asArray(data.citation).map((item) => asString(item)).filter(Boolean) as string[];
+    // Try richer gradings from embedded page data first
+    const pageGradings = parsePageGradings(html);
+    const gradings = pageGradings.length ? pageGradings : citations.map((c) => parseGradingCitation(c)).filter(Boolean);
+    const { arabic, english } = splitArabicEnglish(rawText);
     return {
       source: this.name,
       bookId: `${volume}/${section}/${chapter}`,
       volume,
       page,
       bookTitle,
-      text: asString(data.text) ?? cleanWhitespace($("main").text(), "\n"),
+      text: arabic || rawText,
       url,
       footnotes: citations.map((text, index) => ({ id: String(index + 1), label: `Grade ${index + 1}`, text })),
-      meta: { chapterName: asString(asObj(data.isPartOf)?.name) },
+      meta: { chapterName: asString(asObj(data.isPartOf)?.name), textEn: english, gradings },
     };
   }
 }
@@ -188,6 +198,64 @@ function bookQueries(query: string) {
   const variants = [clean];
   if (/^[a-z\s-]+$/i.test(clean) && !/^al[-\s]/i.test(clean)) variants.push(`Al-${clean}`, `Al ${clean}`);
   return [...new Set(variants)];
+}
+
+function parsePageGradings(html: string): Array<{ grade: string; grader: string; reference?: string }> {
+  const out: Array<{ grade: string; grader: string; reference?: string }> = [];
+  const startKey = '"gradings":';
+  const idx = html.indexOf(startKey);
+  if (idx < 0) return out;
+  const start = html.indexOf("[", idx + startKey.length);
+  if (start < 0) return out;
+  let depth = 1;
+  let end = start + 1;
+  while (end < html.length && depth > 0) {
+    const ch = html[end];
+    if (ch === "[" || ch === "{") depth++;
+    else if (ch === "]" || ch === "}") depth--;
+    end++;
+  }
+  if (depth !== 0) return out;
+  const raw = html.slice(start, end);
+  try {
+    const parsed = JSON.parse(raw) as AnyObj[];
+    for (const g of parsed) {
+      const grade = cleanWhitespace(asString(g.grade_ar) ?? "");
+      if (!grade) continue;
+      out.push({
+        grade,
+        grader: asString(asObj(g.author)?.name_en) ?? asString(asObj(g.author)?.name_ar) ?? "",
+        reference: asString(g.reference_en) ?? undefined,
+      });
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return out;
+}
+
+function parseGradingCitation(citation: string): { grade: string; grader: string; reference?: string } | null {
+  if (!citation) return null;
+  const gradeMatch = citation.match(/grade:\s*([^;]+)/i);
+  const refMatch = citation.match(/reference:\s*([^;]+)/i);
+  const graderMatch = citation.match(/grader:\s*([^;]+)/i);
+  if (!gradeMatch) return null;
+  return {
+    grade: gradeMatch[1].trim(),
+    grader: graderMatch ? graderMatch[1].trim() : "",
+    reference: refMatch ? refMatch[1].trim() : undefined,
+  };
+}
+
+function splitArabicEnglish(text: string): { arabic: string; english?: string } {
+  // The JSON-LD text often combines Arabic and English separated by \n\n
+  const idx = text.search(/\n{2,}(?=[A-Za-z0-9])/);
+  if (idx > 0) {
+    const arabic = text.slice(0, idx).trim();
+    const english = text.slice(idx).trim();
+    if (english && /[A-Za-z]/.test(english)) return { arabic, english };
+  }
+  return { arabic: text.trim() };
 }
 
 function arrayHits(result: AnyObj) {
