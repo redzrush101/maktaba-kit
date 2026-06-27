@@ -41,7 +41,8 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
 
 .reader-text {
   direction: rtl;
-  line-height: 1.95;
+  text-align: right;
+  line-height: 2;
   font-size: clamp(1.08rem, 1.12vw, 1.24rem);
   letter-spacing: .005em;
   text-wrap: pretty;

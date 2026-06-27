@@ -2,6 +2,7 @@ import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
 import { Header } from "@/components/Header";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { LibraryActions } from "@/components/LibraryActions";
+import { MobileReaderToolbar } from "@/components/MobileReaderToolbar";
 import { PageJump } from "@/components/PageJump";
 import { ReaderSettings } from "@/components/ReaderSettings";
 import { SourceBadge } from "@/components/SourceBadge";
@@ -47,7 +48,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
       {pageNo > 1 && <Link aria-label="Previous page" className="fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-line bg-[rgb(var(--sheet))]/90 p-2 text-muted shadow-soft backdrop-blur transition hover:text-ink lg:block" href={prevHref}><ChevronRight size={22} /></Link>}
       {(!maxPage || pageNo < maxPage) && <Link aria-label="Next page" className="fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-line bg-[rgb(var(--sheet))]/90 p-2 text-muted shadow-soft backdrop-blur transition hover:text-ink lg:block" href={nextHref}><ChevronLeft size={22} /></Link>}
       <section className="reader-shell mx-auto grid gap-3 px-4 pb-28 lg:grid-cols-[14rem_1fr] lg:pb-10" dir="ltr">
-        <aside className="order-2 space-y-2 lg:order-1 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1" dir="ltr">
+        <aside className="order-2 hidden space-y-2 lg:order-1 lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1" dir="ltr">
           <div className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 font-sans text-xs text-muted shadow-sm">
             <p className="font-semibold text-ink">Navigation</p>
             <p className="mt-1" dir="ltr">Book {bookId}{volume ? ` · vol ${volume}` : ""} · page {pageNo}{maxPage ? ` / ${maxPage}` : ""}</p>
@@ -116,10 +117,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
           ) : <p className="font-sans text-2xl text-muted">Could not load this page.</p>}
         </article>
       </section>
-      <nav className="fixed inset-x-3 bottom-4 z-40 grid grid-cols-2 gap-2 rounded-2xl border border-line bg-[rgb(var(--sheet))]/95 p-2 font-sans text-sm shadow-soft backdrop-blur lg:hidden" dir="ltr" aria-label="Page navigation">
-        <Link className="inline-flex items-center justify-center gap-2 rounded-xl border border-line px-3 py-2.5 font-semibold text-ink" href={prevHref}><ChevronLeft size={18} /> Previous</Link>
-        <Link className="inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-3 py-2.5 font-semibold text-paper" href={nextHref}>Next <ChevronRight size={18} /></Link>
-      </nav>
+      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} />
       <div className="page-progress" aria-hidden="true"><span style={{ width: progress }} /></div>
     </main>
   );
