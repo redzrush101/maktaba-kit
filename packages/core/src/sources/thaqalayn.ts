@@ -137,6 +137,9 @@ export class ThaqalaynSource {
     const section = asString(doc.bookSectionNumber) ?? "1";
     const chapter = asString(doc.chapterNumber) ?? "0";
     const number = asNumber(doc.number) ?? 1;
+    const textAr = asString(doc.textArDisplay) ?? asString(doc.textAr) ?? "";
+    const textEn = asString(doc.textEn) ?? "";
+    const isLatinQuery = !arabic.test(query);
     return {
       source: this.name,
       kind: "text",
@@ -145,7 +148,7 @@ export class ThaqalaynSource {
       author: asString(doc.authorName),
       volume,
       page: number,
-      snippet: asString(doc.textArDisplay) ?? asString(doc.textAr) ?? asString(doc.textEn),
+      snippet: isLatinQuery && textEn ? textEn : textAr || textEn,
       url: `${this.base}/hadith/${volume}/${section}/${chapter}/${number}`,
       hitCount: undefined,
       meta: { query, chapterName: doc.chapterNameOriginal ?? doc.chapterName, textEn: doc.textEn, grades: doc.grades, graderNames: doc.graderNames },
