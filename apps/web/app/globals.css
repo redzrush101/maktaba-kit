@@ -48,27 +48,33 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
   text-wrap: pretty;
 }
 
-[data-reader-size="sm"] .reader-text { font-size: 1rem; }
-[data-reader-size="lg"] .reader-text { font-size: clamp(1.2rem, 1.35vw, 1.42rem); }
-[data-reader-size="xl"] .reader-text { font-size: clamp(1.35rem, 1.6vw, 1.65rem); }
-[data-reader-leading="compact"] .reader-text { line-height: 1.65; }
-[data-reader-leading="spacious"] .reader-text { line-height: 2.25; }
+[data-reader-size="sm"] .reader-text { font-size: 1rem; line-height: 1.85; }
+[data-reader-size="md"] .reader-text { font-size: clamp(1.08rem, 1.12vw, 1.24rem); line-height: 2; }
+[data-reader-size="lg"] .reader-text { font-size: clamp(1.2rem, 1.35vw, 1.42rem); line-height: 2.15; }
+[data-reader-size="xl"] .reader-text { font-size: clamp(1.35rem, 1.6vw, 1.65rem); line-height: 2.3; }
+[data-reader-leading="compact"] .reader-text { line-height: 1.65 !important; }
+[data-reader-leading="spacious"] .reader-text { line-height: 2.25 !important; }
 [data-reader-font="serif"] .reader-text { font-family: Georgia, "Times New Roman", serif; }
 [data-reader-font="sans"] .reader-text { font-family: var(--font-sans), system-ui, sans-serif; }
 [data-reader-columns="single"] .reader-text { columns: 1 !important; }
 [data-reader-columns="double"] .reader-text { columns: 2; column-gap: 3rem; }
 
 .reader-english {
-  font-size: 0.95rem;
-  line-height: 1.75;
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.8;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  letter-spacing: .01em;
+  text-wrap: pretty;
 }
 
-[data-reader-size="sm"] .reader-english { font-size: 0.875rem; }
-[data-reader-size="lg"] .reader-english { font-size: 1.05rem; }
-[data-reader-size="xl"] .reader-english { font-size: 1.15rem; }
+[data-reader-size="sm"] .reader-english { font-size: 0.9rem; line-height: 1.65; }
+[data-reader-size="md"] .reader-english { font-size: 1rem; line-height: 1.8; }
+[data-reader-size="lg"] .reader-english { font-size: 1.1rem; line-height: 1.9; }
+[data-reader-size="xl"] .reader-english { font-size: 1.25rem; line-height: 2; }
 [data-reader-leading="compact"] .reader-english { line-height: 1.5; }
-[data-reader-leading="spacious"] .reader-english { line-height: 2; }
+[data-reader-leading="spacious"] .reader-english { line-height: 2.2; }
+[data-reader-font="serif"] .reader-english { font-family: Georgia, "Times New Roman", serif; }
+[data-reader-font="sans"] .reader-english { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
 
 .book-sheet {
   background:
