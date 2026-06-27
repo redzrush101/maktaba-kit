@@ -113,10 +113,16 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
                   <h2 className="mb-2 font-sans text-lg font-semibold">Hadith Grades</h2>
                   <div className="space-y-3">
                     {gradings.map((g, i) => {
-                      const isWeak = /\u0645\u062C\u0647\u0648\u0644|\u0636\u0639\u064A\u0641|\u0644\u0645\u0020\u064A\u062E\u0631\u062C/.test(g.grade);
+                      const isDaif = /\u0636\u0639\u064A\u0641/.test(g.grade);
+                      const isMajhul = /\u0645\u062C\u0647\u0648\u0644/.test(g.grade);
+                      const badgeClass = isDaif
+                        ? "border-red-500/50 bg-red-300/20 text-red-700 dark:border-red-400/50 dark:bg-red-400/30 dark:text-red-200"
+                        : isMajhul
+                          ? "border-yellow-600/50 bg-yellow-300/20 text-yellow-800 dark:border-yellow-500/40 dark:bg-yellow-600/30 dark:text-yellow-200"
+                          : "border-slate-400/50 bg-slate-300/20 text-slate-700 dark:border-slate-500/40 dark:bg-slate-700/30 dark:text-slate-200";
                       return (
                         <div key={i} className="flex flex-wrap items-start gap-3 rounded-lg border border-line/70 bg-ink/[0.025] p-3 font-sans text-sm">
-                          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${isWeak ? "border-yellow-600/50 bg-yellow-300/20 text-yellow-800 dark:border-yellow-500/40 dark:bg-yellow-600/30 dark:text-yellow-200" : "border-slate-400/50 bg-slate-300/20 text-slate-700 dark:border-slate-500/40 dark:bg-slate-700/30 dark:text-slate-200"}`} dir="auto">{g.grade}</span>
+                          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeClass}`} dir="auto">{g.grade}</span>
                           {g.reference && <span className="text-muted" dir="auto">{g.reference}</span>}
                           {g.grader && <span className="text-muted" dir="auto">{g.grader}</span>}
                         </div>

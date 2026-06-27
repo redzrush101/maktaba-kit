@@ -58,7 +58,17 @@ export class ThaqalaynSource {
     const parts = bookId.split("/").filter(Boolean);
     if (parts.length >= 3) {
       const doc = await this.hadithByParts(parts[0], parts[1], parts[2], page);
-      if (doc) return [this.pageFromDoc(doc, bookId, page)];
+      if (doc) {
+        const pg = this.pageFromDoc(doc, bookId, page);
+        // Enrich gradings with reference book names from the HTML page
+        if (asArray(doc.grades).filter(Boolean).length) {
+          const htmlPage = await this.pageFromHtml(parts[0], parts[1], parts[2], page).catch(() => undefined);
+          if (htmlPage?.meta?.gradings) {
+            pg.meta = { ...pg.meta, gradings: htmlPage.meta.gradings };
+          }
+        }
+        return [pg];
+      }
       return [await this.pageFromHtml(parts[0], parts[1], parts[2], page)];
     }
     const toc = await this.toc(bookId, 1);
