@@ -60,10 +60,18 @@ export default async function BookPage({ params, searchParams }: { params: Promi
         <section className="mt-4 rounded-2xl border border-line bg-paper/60 p-4">
           <h2 className="mb-3 font-sans text-xl font-semibold">Table of contents</h2>
           {tocRes.data.length ? (
-            <div className="grid gap-2 md:grid-cols-2">
+            <div className="space-y-1">
               {tocRes.data.map((item, i) => {
+                if (item.level === 0) {
+                  return (
+                    <div key={`section-${i}`} className="flex items-center gap-2 py-1">
+                      {item.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{item.volume}</span>}
+                      <p className="font-sans text-xs font-semibold text-ink/80" dir="auto">{item.title}</p>
+                    </div>
+                  );
+                }
                 const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
-                return <Link key={`${item.title}-${i}`} href={href} className="rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 font-arabic text-ink hover:bg-ink/5" dir="auto"><span>{item.title}</span>{item.page && <span className="mr-2 font-sans text-xs text-muted" dir="ltr">p. {item.page}</span>}</Link>;
+                return <Link key={`${item.title}-${i}`} href={href} className="mr-3 block rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 font-arabic text-ink hover:bg-ink/5" dir="auto"><span>{item.title}</span>{item.page && <span className="mr-2 font-sans text-xs text-muted" dir="ltr">p. {item.page}</span>}</Link>;
               })}
             </div>
           ) : <p className="font-sans text-muted">No table of contents available.</p>}

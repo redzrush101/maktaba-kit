@@ -92,8 +92,45 @@ export class ThaqalaynSource {
     const rootBookId = parts[0] ?? bookId;
     const html = await this.getText(`${this.base}/book/${rootBookId}`);
     const $ = cheerio.load(html);
+
+    // Extract volume from the page
+    // Extract volume from the page (e.g., "(Vol. 2)" or "Vol. 2")
+    let volume: string | undefined;
+    const volSpan = html.match(/\(Vol\.\s*(\d+)\)/);
+    if (volSpan) volume = volSpan[1];
+    if (!volume) {
+      const volMatch = html.match(/[Vv]ol\.\s*(\d+)/);
+      if (volMatch) volume = volMatch[1];
+    }
+
     const items: TocItem[] = [];
     const sectionFilter = parts.length >= 2 ? `${parts[0]}/${parts[1]}/` : null;
+    let sectionNum = 0;
+
+    // Find all section headings (h2 numbering like "1. The Book of...")
+    // Only include the one matching the current section if sectionFilter is active
+    const sectionNumFilter = parts.length >= 2 ? Number(parts[1]) : undefined;
+    $('h2').each((_, h2) => {
+      if (items.length >= limit) return false;
+      const sectionText = cleanWhitespace($(h2).text());
+      if (!sectionText) return;
+      const sectionMatch = sectionText.match(/^(\d+)\./);
+      if (!sectionMatch) return;
+      const secNum = Number(sectionMatch[1]);
+      if (sectionNumFilter !== undefined && secNum !== sectionNumFilter) return;
+      sectionNum++;
+      const volLabel = volume ? `Vol. ${volume}` : undefined;
+      items.push({
+        source: this.name,
+        bookId: `${parts[0] ?? rootBookId}/${sectionNum}`,
+        title: sectionText,
+        page: undefined,
+        volume: volLabel,
+        level: 0,
+      });
+    });
+
+    // Find all chapter links and group them by section
     $('a[href^="/chapter/"]').each((_, a) => {
       if (items.length >= limit) return;
       const href = $(a).attr("href") ?? "";
@@ -105,8 +142,19 @@ export class ThaqalaynSource {
         .replace(/^(Chapter\s+\d+[a-zA-Z]?\s*[-–]?\s*)/i, "")
         .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
         .trim();
-      if (title) items.push({ source: this.name, bookId: `${m[1]}/${m[2]}/${m[3]}`, title, page: 1, url: `${this.base}${href}` });
+      if (title) {
+        items.push({
+          source: this.name,
+          bookId: `${m[1]}/${m[2]}/${m[3]}`,
+          title,
+          page: 1,
+          volume,
+          level: 1,
+          url: `${this.base}${href}`,
+        });
+      }
     });
+
     return items;
   }
 

@@ -56,10 +56,18 @@ export function MobileReaderToolbar({
             <button type="button" onClick={() => setPanel(null)} className="rounded-full border border-line p-2 text-muted"><X size={18} /></button>
           </div>
           {panel === "toc" && (
-            <div className="space-y-1 font-arabic text-sm leading-6" dir="rtl">
+            <div className="space-y-1 text-sm leading-6">
               {toc.length ? toc.map((item, index) => {
+                if (item.level === 0) {
+                  return (
+                    <div key={`section-${index}`} className="flex items-center gap-2 py-1">
+                      {item.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{item.volume}</span>}
+                      <p className="font-sans text-xs font-semibold text-ink/80" dir="auto">{item.title}</p>
+                    </div>
+                  );
+                }
                 const href = item.source === "eshia" ? `/read/eshia/${item.bookId}/${item.volume ?? volume ?? "1"}/${item.page ?? 1}` : item.source === "thaqalayn" ? `/read/thaqalayn/${item.bookId}/${item.page ?? 1}` : `/read/ablibrary/${item.bookId}/${item.page ?? 1}`;
-                return <Link key={`${item.title}-${index}`} href={href} className="block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink" dir="auto">{item.title}</Link>;
+                return <Link key={`${item.title}-${index}`} href={href} className="mr-3 block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink" dir="auto"><span className="font-arabic">{item.title}</span></Link>;
               }) : <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>}
             </div>
           )}

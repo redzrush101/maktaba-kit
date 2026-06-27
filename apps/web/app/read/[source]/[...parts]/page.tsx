@@ -86,11 +86,23 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
           {!!tocRes.data.length && (
             <nav className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 shadow-sm" aria-label="Table of contents">
               <p className="mb-2 font-sans font-semibold text-ink">Table of contents</p>
-              <div className="space-y-1 font-arabic text-sm leading-6">
+              <div className="space-y-1 text-sm leading-6">
                 {tocRes.data.map((item, i) => {
-                  const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
+                  if (item.level === 0) {
+                    return (
+                      <div key={`section-${i}`} className="flex items-center gap-2 py-1">
+                        {item.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{item.volume}</span>}
+                        <p className="font-sans text-xs font-semibold text-ink/80" dir="auto">{item.title}</p>
+                      </div>
+                    );
+                  }
+                  const href = item.bookId ? readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page ?? 1 }) : "#";
                   const active = item.page && item.page <= pageNo;
-                  return <Link key={`${item.title}-${i}`} href={href} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="auto">{item.title}</Link>;
+                  return (
+                    <Link key={`${item.title}-${i}`} href={href} className={`mr-3 block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="auto">
+                      <span className="font-arabic">{item.title}</span>
+                    </Link>
+                  );
                 })}
               </div>
             </nav>
