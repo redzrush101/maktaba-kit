@@ -1,7 +1,6 @@
 import type { Book, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
-
-type AnyObj = Record<string, unknown>;
+import { arrayOfObjects, asArray, asNumber, asObj, asString, type AnyObj } from "../source-utils";
 
 export class AblibrarySource {
   name = "ablibrary" as const;
@@ -156,33 +155,6 @@ export class AblibrarySource {
     walk(page);
     return parts.map((p) => p.trim()).filter(Boolean).join("\n");
   }
-}
-
-function asObj(value: unknown): AnyObj | undefined {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as AnyObj : undefined;
-}
-
-function asArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
-}
-
-function arrayOfObjects(value: unknown): AnyObj[] {
-  return asArray(value).flatMap((item) => asObj(item) ? [asObj(item)] as AnyObj[] : []);
-}
-
-function asString(value: unknown): string | undefined {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  return undefined;
-}
-
-function asNumber(value: unknown): number | undefined {
-  if (typeof value === "number") return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-  return undefined;
 }
 
 function normalizeText(value: string) {

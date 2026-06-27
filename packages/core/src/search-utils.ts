@@ -1,4 +1,4 @@
-import type { Book, SearchResult } from "./models";
+import type { Book, SearchOptions, SearchResult } from "./models";
 
 const diacritics = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
 const punctuation = /[\s،؛,.!?؟:()[\]{}«»"'`ـ\-_/\\]+/g;
@@ -90,4 +90,19 @@ export function sortSearchResults(results: SearchResult[], query: string) {
 
 export function sortBooks(books: Book[], query: string) {
   return [...books].sort((a, b) => scoreBook(b, query) - scoreBook(a, query));
+}
+
+export function postProcessSearchResults(results: SearchResult[], query: string, options: SearchOptions = {}) {
+  const volumeFiltered = options.volume ? results.filter((result) => String(result.volume ?? "") === String(options.volume)) : results;
+  let out = options.volume && (volumeFiltered.length || options.strictVolume) ? volumeFiltered : results;
+  out = dedupeSearchResults(out);
+  if (options.exact) out = out.filter((result) => includesNormalized([result.snippet, result.bookTitle].filter(Boolean).join(" "), query));
+  if (options.matchAll) out = out.filter((result) => matchesAllTokens([result.snippet, result.bookTitle, result.author].filter(Boolean).join(" "), query));
+  return sortSearchResults(out, query);
+}
+
+export function postProcessBooks(books: Book[], query: string, options: SearchOptions = {}) {
+  let out = sortBooks(dedupeBooks(books), query);
+  if (options.matchAll) out = out.filter((book) => matchesAllTokens([book.title, book.author].filter(Boolean).join(" "), query));
+  return out;
 }

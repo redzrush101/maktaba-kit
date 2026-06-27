@@ -1,6 +1,7 @@
 import * as cheerio from "cheerio";
 import type { Book, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
+import { cleanWhitespace } from "../source-utils";
 
 export class EshiaSource {
   name = "eshia" as const;
@@ -170,7 +171,7 @@ export class EshiaSource {
 }
 
 function clean(s: string, join = " ") {
-  return (s || "").split(/\s+/).filter(Boolean).join(join);
+  return cleanWhitespace(s, join);
 }
 
 function between(s: string, a: string, b: string) {

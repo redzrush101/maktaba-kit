@@ -2,21 +2,14 @@
 
 import { Bookmark, Check, List, SlidersHorizontal, Type, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { bookmarksKey, readItems, recentKey, removeItem, upsertItem, type LibraryItem } from "@/lib/library-storage";
+import { useState } from "react";
 import type { TocItem } from "@maktaba-kit/core";
+import { type BookmarkInput, useLibraryBookmark } from "./useLibraryBookmark";
+import { type ReaderSettingsState, readerSettingsOptions, useReaderSettings } from "./useReaderSettings";
 
 type VolumeOption = { label: string; value: string };
 type Panel = "toc" | "settings" | "tools" | null;
-type BookmarkItem = Omit<LibraryItem, "createdAt" | "updatedAt" | "ref"> & { itemRef: string };
 
-type ReaderSettingsState = {
-  theme: "night" | "light" | "sepia";
-  size: "sm" | "md" | "lg" | "xl";
-  leading: "compact" | "comfortable" | "spacious";
-};
-
-const defaults: ReaderSettingsState = { theme: "night", size: "md", leading: "comfortable" };
 
 export function MobileReaderToolbar({
   prevHref,
@@ -39,46 +32,12 @@ export function MobileReaderToolbar({
   volume?: string;
   page: number;
   maxPage?: number;
-  bookmarkItem: BookmarkItem;
+  bookmarkItem: BookmarkInput;
 }) {
   const [panel, setPanel] = useState<Panel>(null);
-  const [bookmarked, setBookmarked] = useState(false);
   const [jump, setJump] = useState(String(page));
-  const [settings, setSettings] = useState<ReaderSettingsState>(defaults);
-  const storageItem = useMemo(() => ({ ...bookmarkItem, ref: bookmarkItem.itemRef }), [bookmarkItem]);
-
-  useEffect(() => {
-    upsertItem(recentKey, storageItem, 50);
-    setBookmarked(readItems(bookmarksKey).some((item) => item.ref === storageItem.ref));
-  }, [storageItem]);
-
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem("maktaba-reader-settings") ?? "{}");
-      setSettings({ ...defaults, ...saved });
-    } catch {
-      window.localStorage.removeItem("maktaba-reader-settings");
-    }
-  }, []);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("light", settings.theme === "light");
-    root.classList.toggle("sepia", settings.theme === "sepia");
-    root.dataset.readerSize = settings.size;
-    root.dataset.readerLeading = settings.leading;
-    window.localStorage.setItem("maktaba-reader-settings", JSON.stringify(settings));
-  }, [settings]);
-
-  function toggleBookmark() {
-    if (bookmarked) {
-      removeItem(bookmarksKey, storageItem.ref);
-      setBookmarked(false);
-      return;
-    }
-    upsertItem(bookmarksKey, storageItem, 200);
-    setBookmarked(true);
-  }
+  const { bookmarked, toggleBookmark } = useLibraryBookmark(bookmarkItem);
+  const { settings, update } = useReaderSettings();
 
   function goToPage() {
     const parsed = Math.max(1, Math.min(maxPage ?? Number.POSITIVE_INFINITY, Number(jump) || 1));
@@ -104,9 +63,9 @@ export function MobileReaderToolbar({
           )}
           {panel === "settings" && (
             <div className="grid gap-3 font-sans text-sm text-muted">
-              <Select label="Theme" value={settings.theme} options={[['night', 'Night'], ['light', 'Light'], ['sepia', 'Sepia']]} onChange={(value) => setSettings((current) => ({ ...current, theme: value as ReaderSettingsState['theme'] }))} />
-              <Select label="Text size" value={settings.size} options={[['sm', 'Small'], ['md', 'Medium'], ['lg', 'Large'], ['xl', 'XL']]} onChange={(value) => setSettings((current) => ({ ...current, size: value as ReaderSettingsState['size'] }))} />
-              <Select label="Line spacing" value={settings.leading} options={[['compact', 'Compact'], ['comfortable', 'Comfort'], ['spacious', 'Spacious']]} onChange={(value) => setSettings((current) => ({ ...current, leading: value as ReaderSettingsState['leading'] }))} />
+              <Select label="Theme" value={settings.theme} options={readerSettingsOptions.theme} onChange={(value) => update("theme", value as ReaderSettingsState["theme"])} />
+              <Select label="Text size" value={settings.size} options={readerSettingsOptions.size} onChange={(value) => update("size", value as ReaderSettingsState["size"])} />
+              <Select label="Line spacing" value={settings.leading} options={readerSettingsOptions.leading} onChange={(value) => update("leading", value as ReaderSettingsState["leading"])} />
             </div>
           )}
           {panel === "tools" && (
@@ -153,7 +112,7 @@ export function MobileReaderToolbar({
   );
 }
 
-function Select({ label, value, options, onChange }: { label: string; value: string; options: Array<[string, string]>; onChange: (value: string) => void }) {
+function Select({ label, value, options, onChange }: { label: string; value: string; options: ReadonlyArray<readonly [string, string]>; onChange: (value: string) => void }) {
   return (
     <label className="block">
       <span className="mb-1 block text-muted">{label}</span>

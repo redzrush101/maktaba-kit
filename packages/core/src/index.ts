@@ -2,7 +2,7 @@ import { MemoryCache } from "./cache";
 import { HttpClient } from "./http";
 import type { ApiResponse, Book, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
 import { parseRef } from "./refs";
-import { dedupeBooks, dedupeSearchResults, includesNormalized, matchesAllTokens, normalizeArabic, sortBooks, sortSearchResults } from "./search-utils";
+import { normalizeArabic, postProcessBooks, postProcessSearchResults } from "./search-utils";
 import { AblibrarySource } from "./sources/ablibrary";
 import { EshiaSource } from "./sources/eshia";
 
@@ -10,6 +10,7 @@ export * from "./cache";
 export * from "./models";
 export * from "./refs";
 export * from "./search-utils";
+export * from "./source-utils";
 
 export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean; maxCacheEntries?: number };
 
@@ -61,12 +62,7 @@ export class MaktabaClient {
         errors.push(...fallback.errors);
       }
     }
-    const volumeFiltered = options.volume ? data.filter((r) => String(r.volume ?? "") === String(options.volume)) : data;
-    let out = options.volume && (volumeFiltered.length || options.strictVolume) ? volumeFiltered : data;
-    out = dedupeSearchResults(out);
-    if (options.exact) out = out.filter((r) => includesNormalized([r.snippet, r.bookTitle].filter(Boolean).join(" "), cleanQuery));
-    if (options.matchAll) out = out.filter((r) => matchesAllTokens([r.snippet, r.bookTitle, r.author].filter(Boolean).join(" "), cleanQuery));
-    out = sortSearchResults(out, cleanQuery);
+    let out = postProcessSearchResults(data, cleanQuery, options);
     if (!wantsAll) out = out.slice(0, limit);
     out = out.map((r) => ({ ...r, snippet: trim(r.snippet, options.context ?? 320, cleanQuery) }));
     return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
@@ -75,8 +71,7 @@ export class MaktabaClient {
   async books(query: string, options: SearchOptions = {}): Promise<ApiResponse<Book[]>> {
     const cleanQuery = query.trim();
     const { data, errors } = await this.many<Book>(options.source ?? "all", (s) => s.books(cleanQuery, options.limit ?? 10, options.page ?? 1));
-    let out = sortBooks(dedupeBooks(data), cleanQuery);
-    if (options.matchAll) out = out.filter((book) => matchesAllTokens([book.title, book.author].filter(Boolean).join(" "), cleanQuery));
+    const out = postProcessBooks(data, cleanQuery, options);
     return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
   }
 

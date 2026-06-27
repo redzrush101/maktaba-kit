@@ -1,8 +1,8 @@
-import { bookPath, createMaktabaClient, type Book, type SearchResult, type SourceSelect } from "@maktaba-kit/core";
+import { createMaktabaClient, type Book, type SearchResult, type SourceSelect } from "@maktaba-kit/core";
 import Link from "next/link";
+import { BookCard } from "@/components/BookCard";
 import { Header } from "@/components/Header";
 import { ResultCard } from "@/components/ResultCard";
-import { SourceBadge } from "@/components/SourceBadge";
 
 type SearchMode = "all" | "text" | "books";
 
@@ -33,7 +33,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   return (
     <main>
-      <Header />
+      <Header hideSearch />
       <section className="mx-auto w-full max-w-5xl px-4 pb-8">
         <div className="mb-4" dir="ltr">
           <p className="font-sans text-sm text-muted" dir="ltr">{booksRes.data.length} books/authors · {textRes.data.length} text results</p>
@@ -98,9 +98,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
         {q && mode !== "books" && (
           <nav className="mt-5 flex items-center justify-center gap-2 font-sans text-sm" dir="ltr" aria-label="Search pagination">
-            <Link aria-disabled={page <= 1} className="rounded-full border border-line px-4 py-2 text-ink aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, mode, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(Math.max(1, page - 1)), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}), ...(matchAll ? { matchAll: "1" } : {}) }).toString()}`}>Previous</Link>
+            <Link aria-disabled={page <= 1} className="rounded-full border border-line px-4 py-2 text-ink aria-disabled:pointer-events-none aria-disabled:opacity-40" href={searchHref({ q, source, mode, bookId, volume, limit, strictVolume, exact, matchAll }, { page: Math.max(1, page - 1) })}>Previous</Link>
             <span className="text-muted">Page {page}</span>
-            <Link aria-disabled={!textRes.data.length || (limit > 0 && textRes.data.length < limit)} className="rounded-full bg-ink px-4 py-2 text-paper aria-disabled:pointer-events-none aria-disabled:opacity-40" href={`/search?${new URLSearchParams({ q, source, mode, ...(bookId ? { bookId } : {}), ...(volume ? { volume } : {}), limit: limit === 0 ? "all" : String(limit), page: String(page + 1), ...(strictVolume ? { strictVolume: "1" } : {}), ...(exact ? { exact: "1" } : {}), ...(matchAll ? { matchAll: "1" } : {}) }).toString()}`}>Next</Link>
+            <Link aria-disabled={!textRes.data.length || (limit > 0 && textRes.data.length < limit)} className="rounded-full bg-ink px-4 py-2 text-paper aria-disabled:pointer-events-none aria-disabled:opacity-40" href={searchHref({ q, source, mode, bookId, volume, limit, strictVolume, exact, matchAll }, { page: page + 1 })}>Next</Link>
           </nav>
         )}
         {q && !textRes.data.length && !booksRes.data.length && <p className="mt-5 rounded-3xl border border-line p-8 text-center font-sans text-xl text-muted">No results. Try a shorter phrase or a different source.</p>}
@@ -109,15 +109,19 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   );
 }
 
-function BookCard({ book }: { book: Book }) {
-  return (
-    <Link href={bookPath({ source: book.source, bookId: book.id, volume: book.volume })} className="rounded-xl border border-line bg-paper/75 p-3 shadow-sm transition hover:shadow-soft" dir="rtl">
-      <SourceBadge source={book.source} />
-      <h3 className="mt-2 font-arabic text-lg font-semibold">{book.title || book.id}</h3>
-      {book.author && <p className="mt-2 font-arabic text-sm text-muted">{book.author}</p>}
-      <p className="mt-3 font-sans text-xs text-muted" dir="ltr">{book.pages ? `${book.pages} pages` : "Book record"}{book.volume ? ` · vol. ${book.volume}` : ""}</p>
-    </Link>
-  );
+function searchHref(current: { q: string; source: SourceSelect; mode: SearchMode; bookId?: string; volume?: string; limit: number; strictVolume: boolean; exact: boolean; matchAll: boolean }, overrides: { page: number }) {
+  return `/search?${new URLSearchParams({
+    q: current.q,
+    source: current.source,
+    mode: current.mode,
+    ...(current.bookId ? { bookId: current.bookId } : {}),
+    ...(current.volume ? { volume: current.volume } : {}),
+    limit: current.limit === 0 ? "all" : String(current.limit),
+    page: String(overrides.page),
+    ...(current.strictVolume ? { strictVolume: "1" } : {}),
+    ...(current.exact ? { exact: "1" } : {}),
+    ...(current.matchAll ? { matchAll: "1" } : {}),
+  }).toString()}`;
 }
 
 function parseMode(value: string | undefined): SearchMode {
