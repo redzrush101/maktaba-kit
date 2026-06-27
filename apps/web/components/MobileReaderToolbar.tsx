@@ -57,18 +57,38 @@ export function MobileReaderToolbar({
           </div>
           {panel === "toc" && (
             <div className="space-y-1 text-sm leading-6">
-              {toc.length ? toc.map((item, index) => {
-                if (item.level === 0) {
-                  return (
-                    <div key={`section-${index}`} className="flex items-center gap-2 py-1">
-                      {item.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{item.volume}</span>}
-                      <p className="font-sans text-xs font-semibold text-ink/80" dir="auto">{item.title}</p>
-                    </div>
-                  );
+              {(() => {
+                if (!toc.length) return <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>;
+                // Group by section
+                const groups: Array<{ section: typeof toc[0]; chapters: typeof toc }> = [];
+                let currentGroup: (typeof groups)[0] | null = null;
+                for (const item of toc) {
+                  if (item.level === 0) {
+                    currentGroup = { section: item, chapters: [] };
+                    groups.push(currentGroup);
+                  } else if (currentGroup) {
+                    currentGroup.chapters.push(item);
+                  }
                 }
-                const href = item.source === "eshia" ? `/read/eshia/${item.bookId}/${item.volume ?? volume ?? "1"}/${item.page ?? 1}` : item.source === "thaqalayn" ? `/read/thaqalayn/${item.bookId}/${item.page ?? 1}` : `/read/ablibrary/${item.bookId}/${item.page ?? 1}`;
-                return <Link key={`${item.title}-${index}`} href={href} className="mr-3 block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink" dir="auto"><span className="font-arabic">{item.title}</span></Link>;
-              }) : <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>}
+                return groups.map((group, gi) => {
+                  const sectionNum = group.section.bookId?.split("/").pop();
+                  const isCurrentSection = sectionNum === bookId.split("/")[1];
+                  return (
+                    <details key={`section-${gi}`} open={isCurrentSection} className="group">
+                      <summary className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink/80 hover:bg-ink/5">
+                        {group.section.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{group.section.volume}</span>}
+                        <span className="font-sans" dir="auto">{group.section.title}</span>
+                      </summary>
+                      <div className="ml-2 mt-1 space-y-0.5 border-l-2 border-line/40 pl-2">
+                        {group.chapters.map((chapter, ci) => {
+                          const href = chapter.source === "eshia" ? `/read/eshia/${chapter.bookId}/${chapter.volume ?? volume ?? "1"}/${chapter.page ?? 1}` : chapter.source === "thaqalayn" ? `/read/thaqalayn/${chapter.bookId}/${chapter.page ?? 1}` : `/read/ablibrary/${chapter.bookId}/${chapter.page ?? 1}`;
+                          return <Link key={`ch-${gi}-${ci}`} href={href} className="block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink" dir="auto"><span className="font-arabic">{chapter.title}</span></Link>;
+                        })}
+                      </div>
+                    </details>
+                  );
+                });
+              })()}
             </div>
           )}
           {panel === "settings" && (

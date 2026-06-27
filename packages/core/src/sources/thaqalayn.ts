@@ -104,56 +104,79 @@ export class ThaqalaynSource {
     }
 
     const items: TocItem[] = [];
-    const sectionFilter = parts.length >= 2 ? `${parts[0]}/${parts[1]}/` : null;
-    let sectionNum = 0;
+    const volLabel = volume ? `Vol. ${volume}` : undefined;
 
-    // Find all section headings (h2 numbering like "1. The Book of...")
-    // Only include the one matching the current section if sectionFilter is active
-    const sectionNumFilter = parts.length >= 2 ? Number(parts[1]) : undefined;
-    $('h2').each((_, h2) => {
+    // Walk the DOM: h2 sections followed by chapter lists
+    $('h2').each((_, h2El) => {
       if (items.length >= limit) return false;
-      const sectionText = cleanWhitespace($(h2).text());
+      const sectionText = cleanWhitespace($(h2El).text());
       if (!sectionText) return;
-      const sectionMatch = sectionText.match(/^(\d+)\./);
+      const sectionMatch = sectionText.match(/^(\d+)\.\s*/);
       if (!sectionMatch) return;
-      const secNum = Number(sectionMatch[1]);
-      if (sectionNumFilter !== undefined && secNum !== sectionNumFilter) return;
-      sectionNum++;
-      const volLabel = volume ? `Vol. ${volume}` : undefined;
+
       items.push({
         source: this.name,
-        bookId: `${parts[0] ?? rootBookId}/${sectionNum}`,
+        bookId: `${parts[0] ?? rootBookId}/${sectionMatch[1]}`,
         title: sectionText,
         page: undefined,
         volume: volLabel,
         level: 0,
       });
-    });
 
-    // Find all chapter links and group them by section
-    $('a[href^="/chapter/"]').each((_, a) => {
-      if (items.length >= limit) return;
-      const href = $(a).attr("href") ?? "";
-      const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
-      if (!m) return;
-      if (sectionFilter && `${m[1]}/${m[2]}/` !== sectionFilter) return;
-      const raw = cleanWhitespace($(a).text());
-      const title = raw
-        .replace(/^(Chapter\s+\d+[a-zA-Z]?\s*[-–]?\s*)/i, "")
-        .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
-        .trim();
-      if (title) {
-        items.push({
-          source: this.name,
-          bookId: `${m[1]}/${m[2]}/${m[3]}`,
-          title,
-          page: 1,
-          volume,
-          level: 1,
-          url: `${this.base}${href}`,
-        });
+      // Collect chapters from the following <ol>/<ul> before the next h2
+      let next = $(h2El).next();
+      while (next.length && !next.is('h2') && items.length < limit) {
+        if (next.is('ol') || next.is('ul')) {
+          next.find('a[href^="/chapter/"]').each((_, a) => {
+            if (items.length >= limit) return;
+            const href = $(a).attr("href") ?? "";
+            const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
+            if (!m) return;
+            const raw = cleanWhitespace($(a).text());
+            const title = raw
+              .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
+              .trim();
+            if (title) {
+              items.push({
+                source: this.name,
+                bookId: `${m[1]}/${m[2]}/${m[3]}`,
+                title,
+                page: 1,
+                volume,
+                level: 1,
+                url: `${this.base}${href}`,
+              });
+            }
+          });
+        }
+        next = next.next();
       }
     });
+
+    // Fallback: if no items found, just get all chapter links flat
+    if (!items.length) {
+      $('a[href^="/chapter/"]').each((_, a) => {
+        if (items.length >= limit) return;
+        const href = $(a).attr("href") ?? "";
+        const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
+        if (!m) return;
+        const raw = cleanWhitespace($(a).text());
+        const title = raw
+          .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
+          .trim();
+        if (title) {
+          items.push({
+            source: this.name,
+            bookId: `${m[1]}/${m[2]}/${m[3]}`,
+            title,
+            page: 1,
+            volume,
+            level: 1,
+            url: `${this.base}${href}`,
+          });
+        }
+      });
+    }
 
     return items;
   }

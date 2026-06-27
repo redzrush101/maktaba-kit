@@ -2,6 +2,7 @@ import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
 import { Header } from "@/components/Header";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { LibraryActions } from "@/components/LibraryActions";
+import type { TocItem } from "@maktaba-kit/core";
 import { ReaderTextToggle } from "@/components/ReaderTextToggle";
 import { MobileReaderToolbar } from "@/components/MobileReaderToolbar";
 import { PageJump } from "@/components/PageJump";
@@ -87,23 +88,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
             <nav className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 shadow-sm" aria-label="Table of contents">
               <p className="mb-2 font-sans font-semibold text-ink">Table of contents</p>
               <div className="space-y-1 text-sm leading-6">
-                {tocRes.data.map((item, i) => {
-                  if (item.level === 0) {
-                    return (
-                      <div key={`section-${i}`} className="flex items-center gap-2 py-1">
-                        {item.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{item.volume}</span>}
-                        <p className="font-sans text-xs font-semibold text-ink/80" dir="auto">{item.title}</p>
-                      </div>
-                    );
-                  }
-                  const href = item.bookId ? readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page ?? 1 }) : "#";
-                  const active = item.page && item.page <= pageNo;
-                  return (
-                    <Link key={`${item.title}-${i}`} href={href} className={`mr-3 block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="auto">
-                      <span className="font-arabic">{item.title}</span>
-                    </Link>
-                  );
-                })}
+                <TocSections items={tocRes.data} parts={parts} volume={volume} pageNo={pageNo} />
               </div>
             </nav>
           )}
@@ -157,5 +142,45 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
       <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} pageUrl={page?.url} />
       <div className="page-progress" aria-hidden="true"><span style={{ width: progress }} /></div>
     </main>
+  );
+}
+
+function TocSections({ items, parts, volume, pageNo }: { items: TocItem[]; parts: string[]; volume?: string; pageNo: number }) {
+  const groups: Array<{ section: TocItem; chapters: TocItem[] }> = [];
+  let currentGroup: { section: TocItem; chapters: TocItem[] } | null = null;
+  for (const item of items) {
+    if (item.level === 0) {
+      currentGroup = { section: item, chapters: [] };
+      groups.push(currentGroup);
+    } else if (currentGroup) {
+      currentGroup.chapters.push(item);
+    }
+  }
+  return (
+    <>
+      {groups.map((group, gi) => {
+        const sectionNum = group.section.bookId?.split("/").pop();
+        const isCurrentSection = sectionNum === parts[1];
+        return (
+          <details key={`section-${gi}`} open={isCurrentSection} className="group">
+            <summary className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink/80 hover:bg-ink/5">
+              {group.section.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{group.section.volume}</span>}
+              <span className="font-sans" dir="auto">{group.section.title}</span>
+            </summary>
+            <div className="ml-2 mt-1 space-y-0.5 border-l-2 border-line/40 pl-2">
+              {group.chapters.map((chapter, ci) => {
+                const href = chapter.bookId ? readerPath({ source: chapter.source, bookId: chapter.bookId, volume: chapter.volume ?? volume, page: chapter.page ?? 1 }) : "#";
+                const active = chapter.page && chapter.page <= pageNo;
+                return (
+                  <Link key={`ch-${gi}-${ci}`} href={href} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="auto">
+                    <span className="font-arabic">{chapter.title}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </details>
+        );
+      })}
+    </>
   );
 }
