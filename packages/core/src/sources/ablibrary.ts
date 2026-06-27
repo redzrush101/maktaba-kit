@@ -69,14 +69,19 @@ export class AblibrarySource {
 
   async read(bookId: string, pages: number[]): Promise<Page[]> {
     const data = await this.post("ablibrary.services.book_service.BookService", "Contents", { bookId, pageNumbers: pages });
-    return arrayOfObjects(asObj(data.abx)?.pages ?? asObj(data.ocr)?.pages).map((p) => ({
-      source: this.name,
-      bookId,
-      page: asNumber(p.number) ?? 1,
-      label: asString(p.label),
-      text: this.flattenPage(p),
-      url: `https://v4.ablibrary.net/books/${bookId}?page=${asNumber(p.number) ?? 1}`,
-    }));
+    return arrayOfObjects(asObj(data.abx)?.pages ?? asObj(data.ocr)?.pages).map((p) => {
+      const parsed = this.parsePageText(p);
+      const page = asNumber(p.number) ?? 1;
+      return {
+        source: this.name,
+        bookId,
+        page,
+        label: asString(p.label),
+        text: parsed.text,
+        footnotes: parsed.footnotes,
+        url: `https://v4.ablibrary.net/books/${bookId}?page=${page}`,
+      };
+    });
   }
 
   async info(bookId: string): Promise<Book> {
@@ -141,19 +146,33 @@ export class AblibrarySource {
   }
 
   private flattenPage(page: unknown): string {
-    const parts: string[] = [];
-    const walk = (node: unknown) => {
-      if (Array.isArray(node)) node.forEach(walk);
-      else if (node && typeof node === "object") {
-        const item = node as AnyObj;
-        const text = asString(asObj(item.text)?.text);
-        if (text) parts.push(text);
-        asArray(item.children).forEach(walk);
-        asArray(item.contents).forEach(walk);
+    return this.parsePageText(page).text;
+  }
+
+  private parsePageText(page: unknown): { text: string; footnotes: Array<{ id: string; label: string; text: string }> } {
+    const main: string[] = [];
+    const footnoteTexts: string[] = [];
+    const walk = (node: unknown, inFootnote = false) => {
+      if (Array.isArray(node)) {
+        node.forEach((child) => walk(child, inFootnote));
+        return;
       }
+      const item = asObj(node);
+      if (!item) return;
+      const isFootnote = inFootnote || Object.prototype.hasOwnProperty.call(item, "footnote");
+      const text = asString(asObj(item.text)?.text)?.trim();
+      if (text) (isFootnote ? footnoteTexts : main).push(text);
+      asArray(item.children).forEach((child) => walk(child, isFootnote));
+      asArray(item.contents).forEach((child) => walk(child, isFootnote));
     };
     walk(page);
-    return parts.map((p) => p.trim()).filter(Boolean).join("\n");
+    return {
+      text: main.map((part) => part.trim()).filter(Boolean).join("\n"),
+      footnotes: splitFootnotes(footnoteTexts.join("\n")).map((text, index) => {
+        const label = text.match(/^\(?\s*[\d٠-٩۰-۹]+\s*\)?/)?.[0]?.trim() ?? `(${index + 1})`;
+        return { id: String(index + 1), label, text: text.replace(/^\(?\s*[\d٠-٩۰-۹]+\s*\)?\s*/, "") };
+      }),
+    };
   }
 }
 
@@ -168,4 +187,11 @@ function normalizeTitle(value: string) {
 function volumeNumber(value: string | undefined) {
   const parsed = Number(value?.replace(/[^\d.]/g, "") ?? "");
   return Number.isFinite(parsed) && parsed > 0 ? parsed : Number.MAX_SAFE_INTEGER;
+}
+
+function splitFootnotes(text: string) {
+  const normalized = text.trim();
+  if (!normalized) return [];
+  const parts = normalized.split(/(?=\(?\s*[\d٠-٩۰-۹]+\s*\)\s*)/).map((part) => part.trim()).filter(Boolean);
+  return parts.length ? parts : [normalized];
 }
