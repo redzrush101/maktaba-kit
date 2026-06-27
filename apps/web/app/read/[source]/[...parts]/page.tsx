@@ -1,5 +1,7 @@
 import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
 import { Header } from "@/components/Header";
+import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
+import { LibraryActions } from "@/components/LibraryActions";
 import { PageJump } from "@/components/PageJump";
 import { ReaderSettings } from "@/components/ReaderSettings";
 import { SourceBadge } from "@/components/SourceBadge";
@@ -10,7 +12,7 @@ type VolumeOption = { label: string; value: string };
 
 export default async function ReaderPage({ params }: { params: Promise<{ source: string; parts: string[] }> }) {
   const { source, parts } = await params;
-  const sourceName = source === "eshia" ? "eshia" : "ablibrary";
+  const sourceName: "ablibrary" | "eshia" = source === "eshia" ? "eshia" : "ablibrary";
   const bookId = parts[0];
   const volume = sourceName === "eshia" ? parts[1] ?? "1" : undefined;
   const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
@@ -27,10 +29,21 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const nextHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
   const twoColumnText = (page?.text.length ?? 0) > 1800;
+  const libraryItem = {
+    ref,
+    source: sourceName,
+    bookId,
+    volume,
+    page: pageNo,
+    title: page?.bookTitle || info?.title,
+    author: page?.author || info?.author,
+    url: sourceName === "eshia" ? `/read/eshia/${bookId}/${volume ?? "1"}/${pageNo}` : `/read/ablibrary/${bookId}/${pageNo}`,
+  };
 
   return (
     <main>
       <Header />
+      <KeyboardShortcuts prevHref={prevHref} nextHref={nextHref} />
       {pageNo > 1 && <Link aria-label="Previous page" className="fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-line bg-[rgb(var(--sheet))]/90 p-2 text-muted shadow-soft backdrop-blur transition hover:text-ink lg:block" href={prevHref}><ChevronRight size={22} /></Link>}
       {(!maxPage || pageNo < maxPage) && <Link aria-label="Next page" className="fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-line bg-[rgb(var(--sheet))]/90 p-2 text-muted shadow-soft backdrop-blur transition hover:text-ink lg:block" href={nextHref}><ChevronLeft size={22} /></Link>}
       <section className="reader-shell mx-auto grid gap-3 px-4 pb-28 lg:grid-cols-[14rem_1fr] lg:pb-10" dir="ltr">
@@ -58,6 +71,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
                 </div>
               </div>
             )}
+            <LibraryActions {...libraryItem} />
             {page?.url && <a className="mt-3 block rounded-lg border border-line px-2 py-1.5 text-center" href={page.url} target="_blank">Original</a>}
           </div>
           <ReaderSettings />

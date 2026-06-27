@@ -7,6 +7,8 @@ export function Header() {
       <nav className="flex gap-4 font-sans text-sm text-muted">
         <Link className="hover:text-ink" href="/search">Search</Link>
         <Link className="hover:text-ink" href="/books">Books</Link>
+        <Link className="hover:text-ink" href="/sources">Sources</Link>
+        <Link className="hover:text-ink" href="/library">Library</Link>
       </nav>
     </header>
   );
