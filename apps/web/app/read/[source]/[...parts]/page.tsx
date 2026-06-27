@@ -30,7 +30,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
   const twoColumnText = (page?.text.length ?? 0) > 1800;
   const libraryItem = {
-    ref,
+    itemRef: ref,
     source: sourceName,
     bookId,
     volume,

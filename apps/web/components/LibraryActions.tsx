@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { bookmarksKey, readItems, recentKey, removeItem, upsertItem, type LibraryItem } from "@/lib/library-storage";
 
-type Props = Omit<LibraryItem, "createdAt" | "updatedAt">;
+type Props = Omit<LibraryItem, "createdAt" | "updatedAt" | "ref"> & { itemRef: string };
 
-export function LibraryActions(item: Props) {
+export function LibraryActions({ itemRef, ...item }: Props) {
   const [bookmarked, setBookmarked] = useState(false);
 
-  const stableItem = useMemo(() => item, [item.ref, item.source, item.bookId, item.volume, item.page, item.title, item.author, item.url]);
+  const stableItem = useMemo(() => ({ ...item, ref: itemRef }), [itemRef, item.source, item.bookId, item.volume, item.page, item.title, item.author, item.url]);
 
   useEffect(() => {
     upsertItem(recentKey, stableItem, 50);
