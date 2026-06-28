@@ -52,6 +52,32 @@ Limitations found:
 - Arabic book-title search in the `books` collection is weaker than hadith text search.
 - Quran, duas, and narrator collections exist, but are intentionally not integrated yet because current Maktaba Kit source support is centered on books/text reading.
 
+## Rafed (lib.rafed.net)
+
+Supported and evidenced (via Python probe against public endpoints):
+
+- Book search by title via `ac.php?ops=1`.
+- Global full-text search via `ac.php?text=<query>&output=true`.
+- In-book full-text search via `ac.php?text=<query>&book=<id>&output=true`.
+- Rich book metadata from sidebar on the book view page: author, publisher, edition, publication date, page count, subject.
+- Page reading via `ajax-fbook.php?book=<id>&pst=<start>&ped=<end>` — returns JSON of page number → HTML content.
+- Table of contents via `indexArray` JS variable embedded in the book page (page-number-based sections).
+- Category browsing via `view.php?type=c_blist&cid=<id>`; 26 stable categories identified.
+- Multi-volume books (separate book IDs per volume, detectable by title matching).
+- DOC download via `print.php?type=d_book&book=<id>&format=doc` (ZIP containing Word DOC + font).
+- Search pagination (20 results per page via `page` parameter).
+- Category-filtered search (`ac.php?cid=<id>`).
+
+Limitations found:
+
+- `robots.txt` disallows all crawlers (`Disallow: /`).
+- Paginated search capped at 20 results per page; no way to request more.
+- Some pages are scanned images only (no extractable text).
+- No standalone authors or full catalog index — must search by title/author.
+- Page loading beyond the first 20 items requires AJAX calls (`ajax-fbook.php`); the server returns groups of ~20 pages.
+- Book info (metadata) is only available from the HTML sidebar on the reading page, not from a dedicated API endpoint.
+- Multi-volume book linking must be inferred from title similarity (e.g., searching the base title and matching).
+
 ## Implementable features from these capabilities
 
 Good fits now:
@@ -62,6 +88,7 @@ Good fits now:
 - Reader keyboard shortcuts and navigation polish.
 - Source health/capability API.
 - Loading/error pages.
+- Rafed source: book search, full-text search, metadata, page reading with HTML support, category browsing, DOC download.
 
 Require more source research or a local index:
 

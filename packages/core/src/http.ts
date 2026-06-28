@@ -12,6 +12,7 @@ export class HttpClient {
     private userAgent = "Mozilla/5.0 MaktabaKit/0.1 (+https://github.com/maktaba-kit)",
     private minHostDelayMs = 350,
     private retries = 2,
+    private maxResponseBytes = 5 * 1024 * 1024,
   ) {}
 
   async request(method: string, url: string, init: RequestInit = {}): Promise<HttpResponse> {
@@ -41,7 +42,14 @@ export class HttpClient {
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const res = await fetch(url, { ...init, method, headers, signal: controller.signal });
+      const contentLength = res.headers.get("content-length");
+      if (contentLength && Number(contentLength) > this.maxResponseBytes) {
+        throw new Error(`Response too large: ${contentLength} bytes (max ${this.maxResponseBytes})`);
+      }
       const text = await res.text();
+      if (text.length > this.maxResponseBytes) {
+        throw new Error(`Response too large: ${text.length} chars (max ${this.maxResponseBytes})`);
+      }
       return { status: res.status, text, url: res.url, headers: Object.fromEntries(res.headers.entries()) };
     } finally {
       clearTimeout(timer);

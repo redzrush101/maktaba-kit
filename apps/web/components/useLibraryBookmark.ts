@@ -10,7 +10,11 @@ export function useLibraryBookmark({ itemRef, ...item }: BookmarkInput) {
   const storageItem = useMemo(() => ({ ...item, ref: itemRef }), [itemRef, item.source, item.bookId, item.volume, item.page, item.title, item.author, item.url]);
 
   useEffect(() => {
-    upsertItem(recentKey, storageItem, 50);
+    const recent = readItems(recentKey);
+    const existing = recent.find((entry) => entry.ref === storageItem.ref);
+    if (!existing || existing.page !== storageItem.page) {
+      upsertItem(recentKey, storageItem, 50);
+    }
     setBookmarked(readItems(bookmarksKey).some((entry) => entry.ref === storageItem.ref));
   }, [storageItem]);
 

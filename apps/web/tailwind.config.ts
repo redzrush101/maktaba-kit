@@ -6,7 +6,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         arabic: ["var(--font-arabic)", "serif"],
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "var(--font-arabic-sans)", "system-ui", "sans-serif"],
       },
       colors: {
         ink: "rgb(var(--ink) / <alpha-value>)",

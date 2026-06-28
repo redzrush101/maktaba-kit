@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Amiri, Vazirmatn } from "next/font/google";
+import { Amiri, Inter, Vazirmatn } from "next/font/google";
 import "./globals.css";
 
 const arabic = Amiri({ subsets: ["arabic"], variable: "--font-arabic", weight: ["400", "700"] });
-const sans = Vazirmatn({ subsets: ["arabic"], variable: "--font-sans", weight: ["400", "500", "600", "700"] });
+const arabicSans = Vazirmatn({ subsets: ["arabic"], variable: "--font-arabic-sans", weight: ["400", "500", "600", "700"] });
+const sans = Inter({ subsets: ["latin"], variable: "--font-sans", weight: ["400", "500", "600", "700", "800"] });
 
 export const metadata: Metadata = {
   title: "Maktaba Kit",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${arabic.variable} ${sans.variable}`} suppressHydrationWarning>
+    <html lang="en" dir="ltr" className={`${arabic.variable} ${arabicSans.variable} ${sans.variable}`} suppressHydrationWarning>
       <body className="bg-paper text-ink antialiased">
         <script dangerouslySetInnerHTML={{ __html: readerSettingsScript }} />
         <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(var(--accent)/.10),transparent_28rem)]">

@@ -32,7 +32,7 @@
 }
 
 html { background: rgb(var(--paper)); color: rgb(var(--ink)); }
-body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; }
+body { min-height: 100vh; font-family: var(--font-sans), var(--font-arabic-sans), system-ui, sans-serif; }
 ::selection { background: rgb(var(--accent) / .22); }
 :where(a, button, input, select, summary):focus-visible {
   outline: 2px solid rgb(var(--accent) / .7);
@@ -69,7 +69,7 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
   text-align: left;
   font-size: 1rem;
   line-height: 1.8;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
   letter-spacing: .01em;
   text-wrap: pretty;
 }
@@ -81,7 +81,7 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
 [data-reader-leading="compact"] .reader-english { line-height: 1.5; }
 [data-reader-leading="spacious"] .reader-english { line-height: 2.2; }
 [data-reader-font="serif"] .reader-english { font-family: Georgia, "Times New Roman", serif; }
-[data-reader-font="sans"] .reader-english { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+[data-reader-font="sans"] .reader-english { font-family: var(--font-sans), system-ui, sans-serif; }
 
 .book-sheet {
   background:

@@ -79,7 +79,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
                 <p className="mb-1">Volumes</p>
                 <div className="flex gap-1 overflow-x-auto pb-1" dir="ltr">
                   {volumes.map((v) => {
-                    const href = sourceName === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
+                    const href = sourceName === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : sourceName === "rafed" ? `/read/rafed/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
                     const active = sourceName === "eshia" ? v.value === volume : v.value === bookId;
                     return <Link key={v.value} className={`shrink-0 rounded-md border border-line px-2 py-1 ${active ? "bg-ink text-paper" : "text-ink"}`} href={href}>{v.label}</Link>;
                   })}
@@ -157,11 +157,30 @@ function isCurrentTocItem(item: TocItem, bookId: string, pageNo: number) {
   return item.bookId === bookId && item.page === pageNo;
 }
 
+function DesktopTocLink({ item, volume, bookId, pageNo, currentChapterName }: { item: TocItem; volume?: string; bookId: string; pageNo: number; currentChapterName?: string }) {
+  const href = item.bookId ? readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page ?? 1 }) : "#";
+  const active = isCurrentTocItem(item, bookId, pageNo);
+  const title = active && currentChapterName ? currentChapterName : item.title;
+  return (
+    <Link href={href} aria-current={active ? "page" : undefined} data-current-toc={active ? "true" : undefined} className={`block rounded-lg px-2 py-1 text-sm hover:bg-ink/5 ${active ? "bg-accent/15 font-semibold text-ink ring-1 ring-accent/30" : "font-normal text-muted"}`} dir="auto">
+      <span className="font-arabic">{title}</span>
+    </Link>
+  );
+}
+
 function TocSections({ items, parts, bookId, volume, pageNo, currentChapterName }: { items: TocItem[]; parts: string[]; bookId: string; volume?: string; pageNo: number; currentChapterName?: string }) {
   const groups = groupTocSections(items);
+  if (!groups.length) {
+    return <>{items.map((item, index) => <DesktopTocLink key={`${item.title}-${index}`} item={item} volume={volume} bookId={bookId} pageNo={pageNo} currentChapterName={currentChapterName} />)}</>;
+  }
+
   return (
     <>
       {groups.map((group, gi) => {
+        if (!group.chapters.length) {
+          return <DesktopTocLink key={`section-link-${gi}`} item={group.section} volume={volume} bookId={bookId} pageNo={pageNo} currentChapterName={currentChapterName} />;
+        }
+
         const sectionNum = group.section.bookId?.split("/").pop();
         const isCurrentSection = sectionNum === parts[1];
         return (
@@ -171,16 +190,7 @@ function TocSections({ items, parts, bookId, volume, pageNo, currentChapterName 
               <span className="font-sans" dir="auto">{group.section.title}</span>
             </summary>
             <div className="ml-2 mt-1 space-y-0.5 border-l-2 border-line/40 pl-2">
-              {group.chapters.map((chapter, ci) => {
-                const href = chapter.bookId ? readerPath({ source: chapter.source, bookId: chapter.bookId, volume: chapter.volume ?? volume, page: chapter.page ?? 1 }) : "#";
-                const active = isCurrentTocItem(chapter, bookId, pageNo);
-                const title = active && currentChapterName ? currentChapterName : chapter.title;
-                return (
-                  <Link key={`ch-${gi}-${ci}`} href={href} aria-current={active ? "page" : undefined} data-current-toc={active ? "true" : undefined} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "bg-accent/15 font-semibold text-ink ring-1 ring-accent/30" : "text-muted"}`} dir="auto">
-                    <span className="font-arabic">{title}</span>
-                  </Link>
-                );
-              })}
+              {group.chapters.map((chapter, ci) => <DesktopTocLink key={`ch-${gi}-${ci}`} item={chapter} volume={volume} bookId={bookId} pageNo={pageNo} currentChapterName={currentChapterName} />)}
             </div>
           </details>
         );

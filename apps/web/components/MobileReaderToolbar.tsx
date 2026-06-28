@@ -31,7 +31,7 @@ export function MobileReaderToolbar({
   nextHref: string;
   toc: TocItem[];
   volumes: VolumeOption[];
-  source: "ablibrary" | "eshia" | "thaqalayn";
+  source: "ablibrary" | "eshia" | "rafed" | "thaqalayn";
   bookId: string;
   volume?: string;
   page: number;
@@ -117,7 +117,7 @@ export function MobileReaderToolbar({
   );
 }
 
-function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { toc: TocItem[]; source: "ablibrary" | "eshia" | "thaqalayn"; bookId: string; volume?: string; page: number; currentChapterName?: string }) {
+function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { toc: TocItem[]; source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; bookId: string; volume?: string; page: number; currentChapterName?: string }) {
   if (!toc.length) return <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>;
 
   const hasSections = toc.some((item) => item.level === 0);
@@ -126,6 +126,10 @@ function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { 
   }
 
   const groups = groupTocSections(toc);
+  const flatSections = groups.length > 0 && groups.every((group) => group.chapters.length === 0);
+  if (flatSections) {
+    return <><ScrollCurrentToc containerId="mobile-reader-panel" /><div className="space-y-1 text-sm leading-6">{groups.map((group, index) => <MobileTocLink key={`${group.section.title}-${index}`} item={group.section} fallbackSource={source} fallbackVolume={volume} currentBookId={bookId} page={page} currentChapterName={currentChapterName} />)}</div></>;
+  }
 
   return (
     <>
@@ -151,7 +155,7 @@ function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { 
   );
 }
 
-function MobileTocLink({ item, fallbackSource, fallbackVolume, currentBookId, page, currentChapterName }: { item: TocItem; fallbackSource: "ablibrary" | "eshia" | "thaqalayn"; fallbackVolume?: string; currentBookId: string; page: number; currentChapterName?: string }) {
+function MobileTocLink({ item, fallbackSource, fallbackVolume, currentBookId, page, currentChapterName }: { item: TocItem; fallbackSource: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; fallbackVolume?: string; currentBookId: string; page: number; currentChapterName?: string }) {
   const itemSource = item.source ?? fallbackSource;
   const href = readerPath({ source: itemSource, bookId: item.bookId, volume: item.volume ?? fallbackVolume, page: item.page ?? 1 });
   const active = itemSource === "thaqalayn" ? item.bookId === currentBookId : item.bookId === currentBookId && item.page === page;

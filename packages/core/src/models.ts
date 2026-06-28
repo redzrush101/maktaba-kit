@@ -1,5 +1,16 @@
-export type SourceName = "ablibrary" | "eshia" | "thaqalayn";
+export type SourceName = "ablibrary" | "eshia" | "thaqalayn" | "rafed";
 export type SourceSelect = SourceName | "all";
+
+/** Known ABLibrary book metadata fields. */
+export type AblibraryBookMeta = Record<string, unknown>;
+
+/** Known eShia book metadata fields. */
+export type EshiaBookMeta = Record<string, unknown>;
+
+/** Known Thaqalayn book metadata fields. */
+export type ThaqalaynBookMeta = Record<string, unknown>;
+
+export type BookMeta = Record<string, unknown>;
 
 export type Book = {
   source: SourceName;
@@ -9,8 +20,10 @@ export type Book = {
   volume?: string;
   pages?: number;
   url?: string;
-  meta?: Record<string, unknown>;
+  meta?: BookMeta;
 };
+
+export type SearchResultMeta = Record<string, unknown>;
 
 export type SearchResult = {
   source: SourceName;
@@ -23,7 +36,7 @@ export type SearchResult = {
   snippet?: string;
   url?: string;
   hitCount?: number;
-  meta?: Record<string, unknown>;
+  meta?: SearchResultMeta;
 };
 
 export type Footnote = {
@@ -31,6 +44,17 @@ export type Footnote = {
   label: string;
   text: string;
 };
+
+/** Known ABLibrary page metadata fields. */
+export type AblibraryPageMeta = Record<string, unknown>;
+
+/** Known eShia page metadata fields. */
+export type EshiaPageMeta = Record<string, unknown>;
+
+/** Known Thaqalayn page metadata fields: chapterName, textEn, gradings. */
+export type ThaqalaynPageMeta = Record<string, unknown>;
+
+export type PageMeta = Record<string, unknown>;
 
 export type Page = {
   source: SourceName;
@@ -43,7 +67,7 @@ export type Page = {
   author?: string;
   url?: string;
   footnotes?: Footnote[];
-  meta?: Record<string, unknown>;
+  meta?: PageMeta;
 };
 
 export type TocItem = {

@@ -1,6 +1,6 @@
 import type { SourceSelect } from "@maktaba-kit/core/client";
 
-const sources = new Set<SourceSelect>(["all", "ablibrary", "eshia", "thaqalayn"]);
+const sources = new Set<SourceSelect>(["all", "ablibrary", "eshia", "rafed", "thaqalayn"]);
 
 export type SearchMode = "all" | "text" | "books";
 

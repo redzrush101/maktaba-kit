@@ -2,8 +2,8 @@ import { expect, type APIRequestContext, type APIResponse as PlaywrightAPIRespon
 
 type ApiResponse<T> = { ok: boolean; data: T; errors: Array<{ source: string; message: string }> };
 type Category = { id: string; name: string };
-type Book = { source: "ablibrary" | "eshia" | "thaqalayn"; id: string; title?: string; volume?: string };
-type SearchResult = { source: "ablibrary" | "eshia" | "thaqalayn"; bookId?: string; page?: number };
+type Book = { source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; id: string; title?: string; volume?: string };
+type SearchResult = { source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; bookId?: string; page?: number };
 type PageResult = { source: string; bookId: string; page: number; text: string; footnotes?: unknown[] };
 type TocItem = { title: string; bookId: string; page?: number };
 
@@ -12,6 +12,8 @@ const knownEshiaRef = "eshia:11005/1/2";
 const knownEshiaReaderPath = "/read/eshia/11005/1/2";
 const knownThaqalaynRef = "thaqalayn:1/1/1/1";
 const knownThaqalaynReaderPath = "/read/thaqalayn/1/1/1/1";
+const knownRafedRef = "rafed:372/3";
+const knownRafedReaderPath = "/read/rafed/372/3";
 
 test.describe.configure({ mode: "serial" });
 
@@ -92,6 +94,12 @@ test.describe("Maktaba Kit integration coverage", () => {
     await page.goto(`/books/${ablibraryBook.source}/${ablibraryBook.id}`);
     await expect(page.locator("h1").first()).toBeVisible({ timeout: 45_000 });
     await expect(page.getByRole("link", { name: "Read" })).toBeVisible();
+
+    // Rafed book detail
+    await page.goto("/books/rafed/372");
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole("link", { name: "Read" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Table of contents" })).toBeVisible();
   });
 
   test("categories index and category detail are covered", async ({ page, request }) => {
@@ -156,6 +164,16 @@ test.describe("Maktaba Kit integration coverage", () => {
     await expect(page).toHaveURL(/\/read\/eshia\/11005\/1\/2/);
   });
 
+  test("Rafed reader page renders text content with TOC and source badge", async ({ page }) => {
+    await page.goto(knownRafedReaderPath);
+    await expect(page.locator("article")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByText(knownRafedRef)).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Table of contents" })).toBeVisible();
+    await expect(page.getByText(/rafed/i)).toBeVisible();
+    await expect(page.locator("article")).toContainText(/[؀-ۿ]/);
+    await expect(page.getByRole("button", { name: /Bookmark page|Remove bookmark/ })).toBeVisible();
+  });
+
   test("Thaqalayn hadith pages expose translations/gradings and hadith shelf links", async ({ page }) => {
     await page.goto("/hadiths");
     await expect(page.getByRole("link", { name: /Al-Kāfi/i }).first()).toBeVisible();
@@ -207,6 +225,37 @@ test.describe("Maktaba Kit integration coverage", () => {
     const read = await request.get(`/api/read?ref=${encodeURIComponent(knownEshiaRef)}`);
     const readJson = await expectApiData<PageResult[]>(read);
     expect(readJson.data[0]?.text.length).toBeGreaterThan(0);
+
+    // Rafed API coverage
+    const rafedSearch = await request.get(`/api/search?q=${encodeURIComponent("الكافي")}&source=rafed&limit=3`);
+    const rafedSearchJson = await expectApiData<SearchResult[]>(rafedSearch);
+    expect(rafedSearchJson.data.length).toBeGreaterThan(0);
+
+    const rafedInfo = await request.get(`/api/info?ref=${encodeURIComponent(knownRafedRef)}`);
+    const rafedInfoJson = await expectApiData<Book[]>(rafedInfo);
+    expect(rafedInfoJson.data[0]?.source).toBe("rafed");
+
+    const rafedToc = await request.get(`/api/toc?ref=${encodeURIComponent(knownRafedRef)}&limit=20`);
+    const rafedTocJson = await expectApiData<TocItem[]>(rafedToc);
+    expect(Array.isArray(rafedTocJson.data)).toBeTruthy();
+
+    const rafedRead = await request.get(`/api/read?ref=${encodeURIComponent(knownRafedRef)}`);
+    const rafedReadJson = await expectApiData<PageResult[]>(rafedRead);
+    expect(rafedReadJson.data[0]?.text.length).toBeGreaterThan(0);
+
+    const rafedFootnotePage = await request.get("/api/read?ref=rafed:372/17");
+    const rafedFootnoteJson = await expectApiData<PageResult[]>(rafedFootnotePage);
+    expect(rafedFootnoteJson.data[0]?.text).not.toContain("__________________");
+    expect(rafedFootnoteJson.data[0]?.footnotes?.length).toBeGreaterThan(0);
+
+    // Rafed categories API
+    const rafedCategories = await request.get("/api/categories?source=rafed&limit=5");
+    const rafedCategoriesJson = await expectApiData<Category[]>(rafedCategories);
+    expect(rafedCategoriesJson.data.length).toBeGreaterThan(0);
+
+    const rafedCatBooks = await request.get(`/api/categories?categoryId=${encodeURIComponent(rafedCategoriesJson.data[0].id)}&source=rafed&limit=3&page=1`);
+    const rafedCatBooksJson = await expectApiData<Book[]>(rafedCatBooks);
+    expect(rafedCatBooksJson.data.length).toBeGreaterThan(0);
   });
 });
 

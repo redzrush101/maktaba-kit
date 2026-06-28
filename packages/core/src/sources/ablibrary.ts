@@ -1,12 +1,13 @@
-import type { Book, Category, Page, SearchResult, TocItem } from "../models";
+import type { Book, Category, LibrarySource, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
 import { arrayOfObjects, asArray, asNumber, asObj, asString, type AnyObj } from "../source-utils";
 
-export class AblibrarySource {
+export class AblibrarySource implements LibrarySource {
   name = "ablibrary" as const;
   base = "https://grpc.ablibrary.net";
   private headers: Record<string, string>;
   private volumeCache = new Map<string, Array<{ label: string; value: string }>>();
+  private static readonly MAX_VOLUME_CACHE = 200;
 
   constructor(private http: HttpClient, lang = "ar") {
     this.headers = { "x-language-id": lang };
@@ -15,7 +16,12 @@ export class AblibrarySource {
   private async post(service: string, method: string, payload: AnyObj) {
     const res = await this.http.postJson(`${this.base}/${service}/${method}`, payload, this.headers);
     if (res.status >= 400) throw new Error(`HTTP ${res.status}: ${res.text.slice(0, 200)}`);
-    const data = JSON.parse(res.text || "{}") as AnyObj;
+    let data: AnyObj;
+    try {
+      data = JSON.parse(res.text || "{}") as AnyObj;
+    } catch (e) {
+      throw new Error(`ABLibrary JSON parse error: ${e instanceof Error ? e.message : e}`, { cause: e });
+    }
     if (data.code) throw new Error(asString(data.message) ?? asString(data.code) ?? "ABLibrary error");
     return data;
   }
@@ -136,6 +142,10 @@ export class AblibrarySource {
         .filter((item) => !author || normalizeText(item.author ?? "") === author)
         .sort((a, b) => volumeNumber(a.volume) - volumeNumber(b.volume))
         .map((item) => ({ label: item.volume ?? item.title ?? item.id, value: item.id }));
+      if (this.volumeCache.size >= AblibrarySource.MAX_VOLUME_CACHE && !this.volumeCache.has(cacheKey)) {
+        const oldestKey = this.volumeCache.keys().next().value;
+        if (oldestKey) this.volumeCache.delete(oldestKey);
+      }
       this.volumeCache.set(cacheKey, volumes);
       return volumes;
     } catch {

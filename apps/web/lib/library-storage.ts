@@ -1,6 +1,6 @@
 export type LibraryItem = {
   ref: string;
-  source: "ablibrary" | "eshia" | "thaqalayn";
+  source: "ablibrary" | "eshia" | "rafed" | "thaqalayn";
   bookId: string;
   volume?: string;
   page: number;
@@ -56,7 +56,7 @@ function isLibraryItem(value: unknown): value is LibraryItem {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<Record<keyof LibraryItem, unknown>>;
   return typeof item.ref === "string"
-    && (item.source === "ablibrary" || item.source === "eshia" || item.source === "thaqalayn")
+    && (item.source === "ablibrary" || item.source === "eshia" || item.source === "rafed" || item.source === "thaqalayn")
     && typeof item.bookId === "string"
     && typeof item.page === "number"
     && typeof item.url === "string"

@@ -27,7 +27,7 @@ export default function Home() {
           </p>
 
           <div className="mt-7 max-w-2xl">
-            <SearchBox defaultValue="الكافي" />
+            <SearchBox defaultValue="الكافي" softDefault />
             <div className="mt-3 flex flex-wrap gap-2 font-arabic text-sm text-muted" dir="rtl">
               {examples.map((q) => <Link key={q} href={`/search?q=${encodeURIComponent(q)}`} className="rounded-full border border-line bg-paper/50 px-3 py-1.5 hover:text-ink">{q}</Link>)}
             </div>

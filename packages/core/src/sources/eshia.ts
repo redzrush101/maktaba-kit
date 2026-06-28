@@ -1,9 +1,9 @@
 import * as cheerio from "cheerio";
-import type { Book, Page, SearchResult, TocItem } from "../models";
+import type { Book, LibrarySource, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
 import { cleanWhitespace } from "../source-utils";
 
-export class EshiaSource {
+export class EshiaSource implements LibrarySource {
   name = "eshia" as const;
   base = "https://lib.eshia.ir";
 
@@ -34,11 +34,19 @@ export class EshiaSource {
     const pagesNeeded = wantsAll ? totalPages : Math.ceil(limit / 10);
     const maxCrawlPages = 25;
     const maxPage = Math.min(page + Math.max(1, pagesNeeded) - 1, page + maxCrawlPages - 1, totalPages || page);
-    for (let current = page + 1; current <= maxPage && out.length < target; current++) {
-      const before = out.length;
-      const $ = await this.soup(`${this.base}${path}?page=${current}`);
-      this.parseSearchRows($, out, target);
-      if (out.length === before) break;
+    const additionalPages: number[] = [];
+    for (let current = page + 1; current <= maxPage && out.length < target; current++) additionalPages.push(current);
+    if (additionalPages.length) {
+      const batches: Array<Promise<cheerio.CheerioAPI | null>> = additionalPages.map((p) =>
+        this.soup(`${this.base}${path}?page=${p}`).catch(() => null)
+      );
+      const results = await Promise.all(batches);
+      for (const $ of results) {
+        if (!$ || out.length >= target) break;
+        const before = out.length;
+        this.parseSearchRows($, out, target);
+        if (out.length === before) break;
+      }
     }
     return out;
   }

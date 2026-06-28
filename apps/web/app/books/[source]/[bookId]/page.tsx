@@ -49,7 +49,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
             <h2 className="mb-3 font-sans text-xl font-semibold">Volumes</h2>
             <div className="flex snap-x gap-2 overflow-x-auto pb-1" dir="ltr">
               {volumes.map((v) => {
-                const href = source === "eshia" ? `/books/${source}/${bookId}?volume=${v.value}` : source === "thaqalayn" ? `/books/thaqalayn/${v.value}` : `/books/ablibrary/${v.value}`;
+                const href = source === "eshia" ? `/books/${source}/${bookId}?volume=${v.value}` : source === "thaqalayn" ? `/books/thaqalayn/${v.value}` : source === "rafed" ? `/books/rafed/${v.value}` : `/books/ablibrary/${v.value}`;
                 const active = source === "eshia" ? v.value === volume : v.value === bookId;
                 return <Link key={v.value} href={href} className={`inline-flex min-h-11 shrink-0 snap-start items-center rounded-full border border-line px-4 py-2 font-sans text-sm ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
               })}

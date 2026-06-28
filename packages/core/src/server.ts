@@ -1,3 +1,10 @@
-export * from "./cache";
-export * from "./http";
-export * from "./index";
+export { MemoryCache, cacheKey } from "./cache";
+export type { CacheStore } from "./cache";
+export { HttpClient } from "./http";
+export type { HttpResponse } from "./http";
+export { MaktabaClient, createMaktabaClient } from "./index";
+export type { MaktabaClientOptions } from "./index";
+export * from "./models";
+export * from "./refs";
+export * from "./search-utils";
+export * from "./source-utils";

@@ -29,6 +29,6 @@ function highlight(text: string, query: string) {
   return text.split(/(\s+)/).map((part, index) => {
     const normalized = normalizeArabic(part);
     const matched = normalized && (phrase.includes(normalized) || normalized.includes(phrase) || tokens.some((token) => normalized.includes(token) || token.includes(normalized)));
-    return matched ? <mark key={`${part}-${index}`}>{part}</mark> : part;
+    return matched ? <mark key={index}>{part}</mark> : part;
   });
 }
