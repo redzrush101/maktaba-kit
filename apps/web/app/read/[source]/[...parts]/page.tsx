@@ -9,6 +9,7 @@ import { MobileReaderToolbar } from "@/components/MobileReaderToolbar";
 import { PageJump } from "@/components/PageJump";
 import { ReaderSettings } from "@/components/ReaderSettings";
 import { SourceBadge } from "@/components/SourceBadge";
+import { ScrollCurrentToc } from "@/components/ScrollCurrentToc";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -29,10 +30,13 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const prevPage = Math.max(1, pageNo - 1);
   const nextPage = maxPage ? Math.min(maxPage, pageNo + 1) : pageNo + 1;
   const prevHref = readerPath({ source: sourceName, bookId, volume, page: prevPage });
-  const nextHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
+  const nextHref = await resolveNextHref({ sourceName, bookId, volume, pageNo, nextPage, toc: tocRes.data });
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
-  const twoColumnText = (page?.text.length ?? 0) > 1800;
-  const englishText = page?.meta?.textEn as string | undefined;
+  const splitText = splitReaderText(page?.text || "", page?.meta?.textEn as string | undefined);
+  const arabicText = splitText.arabic || page?.text || "No text is available for this page.";
+  const englishText = splitText.english;
+  const twoColumnText = arabicText.length > 1800;
+  const currentChapterName = typeof page?.meta?.chapterName === "string" ? page.meta.chapterName : undefined;
   const gradings = page?.meta?.gradings as Array<{ grade: string; grader: string; reference?: string }> | undefined;
   const libraryItem = {
     itemRef: ref,
@@ -51,8 +55,8 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
       <KeyboardShortcuts prevHref={prevHref} nextHref={nextHref} />
       {pageNo > 1 && <Link aria-label="Previous page" className="fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-line bg-[rgb(var(--sheet))]/90 p-2 text-muted shadow-soft backdrop-blur transition hover:text-ink lg:block" href={prevHref}><ChevronRight size={22} /></Link>}
       {(!maxPage || pageNo < maxPage) && <Link aria-label="Next page" className="fixed left-3 top-1/2 z-30 hidden -translate-y-1/2 rounded-full border border-line bg-[rgb(var(--sheet))]/90 p-2 text-muted shadow-soft backdrop-blur transition hover:text-ink lg:block" href={nextHref}><ChevronLeft size={22} /></Link>}
-      <section className="reader-shell mx-auto grid gap-3 px-4 pb-28 lg:grid-cols-[14rem_1fr] lg:pb-10" dir="ltr">
-        <aside className="order-2 hidden space-y-2 lg:order-1 lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1" dir="ltr">
+      <section className="reader-shell mx-auto grid gap-3 px-4 pb-36 lg:grid-cols-[14rem_1fr] lg:pb-10" dir="ltr">
+        <aside id="desktop-reader-toc" className="order-2 hidden space-y-2 lg:order-1 lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-1" dir="ltr">
           <div className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 font-sans text-xs text-muted shadow-sm">
             <p className="font-semibold text-ink">Navigation</p>
             <p className="mt-1" dir="ltr">Book {bookId}{volume ? ` · vol ${volume}` : ""} · page {pageNo}{maxPage ? ` / ${maxPage}` : ""}</p>
@@ -71,11 +75,11 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
             {volumes.length > 1 && (
               <div className="mt-3">
                 <p className="mb-1">Volumes</p>
-                <div className="flex flex-wrap gap-1" dir="ltr">
+                <div className="flex gap-1 overflow-x-auto pb-1" dir="ltr">
                   {volumes.map((v) => {
                     const href = sourceName === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
                     const active = sourceName === "eshia" ? v.value === volume : v.value === bookId;
-                    return <Link key={v.value} className={`rounded-md border border-line px-2 py-1 ${active ? "bg-ink text-paper" : "text-ink"}`} href={href}>{v.label}</Link>;
+                    return <Link key={v.value} className={`shrink-0 rounded-md border border-line px-2 py-1 ${active ? "bg-ink text-paper" : "text-ink"}`} href={href}>{v.label}</Link>;
                   })}
                 </div>
               </div>
@@ -87,14 +91,15 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
           {!!tocRes.data.length && (
             <nav className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 shadow-sm" aria-label="Table of contents">
               <p className="mb-2 font-sans font-semibold text-ink">Table of contents</p>
+              <ScrollCurrentToc containerId="desktop-reader-toc" />
               <div className="space-y-1 text-sm leading-6">
-                <TocSections items={tocRes.data} parts={parts} volume={volume} pageNo={pageNo} />
+                <TocSections items={tocRes.data} parts={parts} bookId={bookId} volume={volume} pageNo={pageNo} currentChapterName={currentChapterName} />
               </div>
             </nav>
           )}
           {!!res.errors.length && <p className="rounded-xl border border-line p-3 font-sans text-xs text-muted">{res.errors.map((e) => e.message).join("; ")}</p>}
         </aside>
-        <article className="book-sheet order-1 rounded-2xl border border-line p-5 sm:p-7 lg:order-2 lg:p-8" dir="rtl">
+        <article className="book-sheet order-1 rounded-2xl border border-line p-5 pb-24 sm:p-7 sm:pb-28 lg:order-2 lg:p-8" dir="rtl">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <SourceBadge source={source} />
             <span className="font-sans text-sm text-muted" dir="ltr">{ref}</span>
@@ -104,7 +109,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
               <h1 className="font-arabic text-2xl font-bold leading-tight">{page.bookTitle || info?.title || page.label || "Reading page"}</h1>
               {(page.author || info?.author) && <p className="mt-1 font-arabic text-base text-muted">{page.author || info?.author}</p>}
               <div className="my-3 h-px bg-line" />
-              <ReaderTextToggle arabic={page.text || "No text is available for this page."} english={englishText} twoColumn={twoColumnText} />
+              <ReaderTextToggle arabic={arabicText} english={englishText} twoColumn={twoColumnText} />
               {gradings?.length ? (
                 <section className="mt-5 border-t border-line pt-4">
                   <h2 className="mb-2 font-sans text-lg font-semibold">Hadith Grades</h2>
@@ -139,13 +144,55 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
           ) : <p className="font-sans text-2xl text-muted">Could not load this page.</p>}
         </article>
       </section>
-      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} pageUrl={page?.url} />
+      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} pageUrl={page?.url} currentChapterName={currentChapterName} />
       <div className="page-progress" aria-hidden="true"><span style={{ width: progress }} /></div>
     </main>
   );
 }
 
-function TocSections({ items, parts, volume, pageNo }: { items: TocItem[]; parts: string[]; volume?: string; pageNo: number }) {
+async function resolveNextHref({ sourceName, bookId, volume, pageNo, nextPage, toc }: { sourceName: "ablibrary" | "eshia" | "thaqalayn"; bookId: string; volume?: string; pageNo: number; nextPage: number; toc: TocItem[] }) {
+  const regularHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
+  if (sourceName !== "thaqalayn") return regularHref;
+
+  const nextRes = await maktabaClient.read(`thaqalayn:${bookId}/${pageNo + 1}`);
+  const nextPageData = nextRes.data[0];
+  if (nextPageData?.text?.trim() || typeof nextPageData?.meta?.textEn === "string") return regularHref;
+
+  const nextChapter = findNextChapter(toc, bookId);
+  return nextChapter ? readerPath({ source: "thaqalayn", bookId: nextChapter.bookId, page: 1 }) : regularHref;
+}
+
+function findNextChapter(toc: TocItem[], currentBookId: string) {
+  const chapters = toc.filter((item) => item.level !== 0 && item.bookId);
+  const currentIndex = chapters.findIndex((item) => item.bookId === currentBookId);
+  return currentIndex >= 0 ? chapters[currentIndex + 1] : undefined;
+}
+
+function isCurrentTocItem(item: TocItem, bookId: string, pageNo: number) {
+  if (item.source === "thaqalayn") return item.bookId === bookId;
+  return item.bookId === bookId && item.page === pageNo;
+}
+
+function splitReaderText(text: string, english?: string) {
+  if (english?.trim()) return { arabic: text, english: english.trim() };
+  if (!/[A-Za-z]/.test(text)) return { arabic: text, english: undefined };
+
+  const newlineSplit = text.search(/\n+(?=[A-Za-z0-9])/);
+  if (newlineSplit > 0) {
+    const arabic = text.slice(0, newlineSplit).trim();
+    const latin = text.slice(newlineSplit).trim();
+    if (arabic && /[A-Za-z]/.test(latin)) return { arabic, english: latin };
+  }
+
+  const latinStart = text.search(/[A-Za-z]/);
+  if (latinStart > 0 && /[\u0600-\u06FF]/.test(text.slice(0, latinStart))) {
+    return { arabic: text.slice(0, latinStart).trim(), english: text.slice(latinStart).trim() };
+  }
+
+  return { arabic: text, english: undefined };
+}
+
+function TocSections({ items, parts, bookId, volume, pageNo, currentChapterName }: { items: TocItem[]; parts: string[]; bookId: string; volume?: string; pageNo: number; currentChapterName?: string }) {
   const groups: Array<{ section: TocItem; chapters: TocItem[] }> = [];
   let currentGroup: { section: TocItem; chapters: TocItem[] } | null = null;
   for (const item of items) {
@@ -170,10 +217,11 @@ function TocSections({ items, parts, volume, pageNo }: { items: TocItem[]; parts
             <div className="ml-2 mt-1 space-y-0.5 border-l-2 border-line/40 pl-2">
               {group.chapters.map((chapter, ci) => {
                 const href = chapter.bookId ? readerPath({ source: chapter.source, bookId: chapter.bookId, volume: chapter.volume ?? volume, page: chapter.page ?? 1 }) : "#";
-                const active = chapter.page && chapter.page <= pageNo;
+                const active = isCurrentTocItem(chapter, bookId, pageNo);
+                const title = active && currentChapterName ? currentChapterName : chapter.title;
                 return (
-                  <Link key={`ch-${gi}-${ci}`} href={href} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "text-ink" : "text-muted"}`} dir="auto">
-                    <span className="font-arabic">{chapter.title}</span>
+                  <Link key={`ch-${gi}-${ci}`} href={href} aria-current={active ? "page" : undefined} data-current-toc={active ? "true" : undefined} className={`block rounded-lg px-2 py-1 hover:bg-ink/5 ${active ? "bg-accent/15 font-semibold text-ink ring-1 ring-accent/30" : "text-muted"}`} dir="auto">
+                    <span className="font-arabic">{title}</span>
                   </Link>
                 );
               })}

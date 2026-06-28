@@ -60,6 +60,9 @@ body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; 
 [data-reader-columns="double"] .reader-text { columns: 2; column-gap: 3rem; }
 
 .reader-english {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
   font-size: 1rem;
   line-height: 1.8;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;

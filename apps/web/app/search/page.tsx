@@ -37,9 +37,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <main>
       <Header hideSearch />
       <section className="mx-auto w-full max-w-5xl px-4 pb-8">
-        <div className="mb-4" dir="ltr">
-          <p className="font-sans text-sm text-muted" dir="ltr">{booksRes.data.length} books/authors · {textRes.data.length} text results</p>
-          <h1 className="font-sans text-2xl font-semibold">{q ? `Search results for: ${q}` : "Search"}</h1>
+        <div className="mb-3" dir="ltr">
+          <p className="font-sans text-sm text-muted" dir="ltr">{booksRes.data.length} books/authors · {textRes.data.length} text results{q ? ` · “${q}”` : ""}</p>
           {bookId && <p className="mt-1 font-sans text-xs text-muted" dir="ltr">inside {source}:{bookId}{volume ? `/${volume}` : ""} · page {page} · showing {limit === 0 ? "all" : `up to ${limit}`}</p>}
         </div>
         <div className="mb-5">

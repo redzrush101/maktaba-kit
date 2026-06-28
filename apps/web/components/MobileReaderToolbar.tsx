@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { TocItem } from "@maktaba-kit/core";
 import { type BookmarkInput, useLibraryBookmark } from "./useLibraryBookmark";
+import { ScrollCurrentToc } from "./ScrollCurrentToc";
 import { type ReaderSettingsState, readerSettingsOptions, useReaderSettings } from "./useReaderSettings";
 
 type VolumeOption = { label: string; value: string };
@@ -23,6 +24,7 @@ export function MobileReaderToolbar({
   maxPage,
   bookmarkItem,
   pageUrl,
+  currentChapterName,
 }: {
   prevHref: string;
   nextHref: string;
@@ -35,6 +37,7 @@ export function MobileReaderToolbar({
   maxPage?: number;
   bookmarkItem: BookmarkInput;
   pageUrl?: string;
+  currentChapterName?: string;
 }) {
   const [panel, setPanel] = useState<Panel>(null);
   const [jump, setJump] = useState(String(page));
@@ -50,47 +53,12 @@ export function MobileReaderToolbar({
     <>
       {panel && <button aria-label="Close reader panel" className="fixed inset-0 z-40 bg-black/35 lg:hidden" type="button" onClick={() => setPanel(null)} />}
       {panel && (
-        <section className="fixed inset-x-2 bottom-[4.75rem] z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-line bg-[rgb(var(--sheet))] p-4 shadow-soft lg:hidden" dir="ltr">
+        <section id="mobile-reader-panel" className="fixed inset-x-2 bottom-[4.75rem] z-50 max-h-[70vh] overflow-y-auto rounded-2xl border border-line bg-[rgb(var(--sheet))] p-4 shadow-soft lg:hidden" dir="ltr">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-sans text-base font-semibold text-ink">{panelTitle(panel)}</h2>
             <button type="button" onClick={() => setPanel(null)} className="rounded-full border border-line p-2 text-muted"><X size={18} /></button>
           </div>
-          {panel === "toc" && (
-            <div className="space-y-1 text-sm leading-6">
-              {(() => {
-                if (!toc.length) return <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>;
-                // Group by section
-                const groups: Array<{ section: typeof toc[0]; chapters: typeof toc }> = [];
-                let currentGroup: (typeof groups)[0] | null = null;
-                for (const item of toc) {
-                  if (item.level === 0) {
-                    currentGroup = { section: item, chapters: [] };
-                    groups.push(currentGroup);
-                  } else if (currentGroup) {
-                    currentGroup.chapters.push(item);
-                  }
-                }
-                return groups.map((group, gi) => {
-                  const sectionNum = group.section.bookId?.split("/").pop();
-                  const isCurrentSection = sectionNum === bookId.split("/")[1];
-                  return (
-                    <details key={`section-${gi}`} open={isCurrentSection} className="group">
-                      <summary className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-ink/80 hover:bg-ink/5">
-                        {group.section.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{group.section.volume}</span>}
-                        <span className="font-sans" dir="auto">{group.section.title}</span>
-                      </summary>
-                      <div className="ml-2 mt-1 space-y-0.5 border-l-2 border-line/40 pl-2">
-                        {group.chapters.map((chapter, ci) => {
-                          const href = chapter.source === "eshia" ? `/read/eshia/${chapter.bookId}/${chapter.volume ?? volume ?? "1"}/${chapter.page ?? 1}` : chapter.source === "thaqalayn" ? `/read/thaqalayn/${chapter.bookId}/${chapter.page ?? 1}` : `/read/ablibrary/${chapter.bookId}/${chapter.page ?? 1}`;
-                          return <Link key={`ch-${gi}-${ci}`} href={href} className="block rounded-lg border border-line/60 bg-paper/40 px-3 py-2 text-ink" dir="auto"><span className="font-arabic">{chapter.title}</span></Link>;
-                        })}
-                      </div>
-                    </details>
-                  );
-                });
-              })()}
-            </div>
-          )}
+          {panel === "toc" && <MobileToc toc={toc} source={source} bookId={bookId} volume={volume} page={page} currentChapterName={currentChapterName} />}
           {panel === "settings" && (
             <div className="grid gap-3 font-sans text-sm text-muted">
               <Select label="Theme" value={settings.theme} options={readerSettingsOptions.theme} onChange={(value) => update("theme", value as ReaderSettingsState["theme"])} />
@@ -112,7 +80,7 @@ export function MobileReaderToolbar({
                     {volumes.map((v) => {
                       const href = source === "eshia" ? `/read/eshia/${bookId}/${v.value}/1` : source === "thaqalayn" ? `/read/thaqalayn/${v.value}/1` : `/read/ablibrary/${v.value}/1`;
                       const active = source === "eshia" ? v.value === volume : v.value === bookId;
-                      return <Link key={v.value} href={href} className={`min-h-11 rounded-full border border-line px-4 py-2 ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
+                      return <Link key={v.value} href={href} className={`inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-4 py-2 ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
                     })}
                   </div>
                 </div>
@@ -135,16 +103,76 @@ export function MobileReaderToolbar({
           )}
         </section>
       )}
-      <nav className="fixed inset-x-2 bottom-3 z-50 grid grid-cols-5 items-center gap-1 rounded-2xl border border-line bg-[rgb(var(--sheet))]/95 p-1.5 font-sans text-xs shadow-soft backdrop-blur lg:hidden" dir="ltr" aria-label="Reader controls">
+      <nav className="fixed inset-x-2 bottom-3 z-50 grid grid-cols-6 items-center gap-1 rounded-2xl border border-line bg-[rgb(var(--sheet))]/95 p-1.5 font-sans text-xs shadow-soft backdrop-blur lg:hidden" dir="ltr" aria-label="Reader controls">
         <Link aria-label="Previous page" className="flex min-h-12 items-center justify-center rounded-xl border border-line text-ink" href={prevHref}><ChevronLeft size={22} /></Link>
         <button aria-label="Table of contents" type="button" onClick={() => setPanel(panel === "toc" ? null : "toc")} className="flex min-h-12 items-center justify-center rounded-xl text-ink"><List size={21} /></button>
         <button aria-label={bookmarked ? "Remove bookmark" : "Bookmark page"} type="button" onClick={toggleBookmark} className={`flex min-h-12 items-center justify-center rounded-xl ${bookmarked ? "bg-accent text-paper" : "text-ink"}`}>{bookmarked ? <Check size={21} /> : <Bookmark size={21} />}</button>
+        <button aria-label="Reader settings" type="button" onClick={() => setPanel(panel === "settings" ? null : "settings")} className="flex min-h-12 items-center justify-center rounded-xl text-ink"><Type size={21} /></button>
         <button aria-label="Reader tools" type="button" onClick={() => setPanel(panel === "tools" ? null : "tools")} className="flex min-h-12 items-center justify-center rounded-xl text-ink"><SlidersHorizontal size={21} /></button>
         <Link aria-label="Next page" className="flex min-h-12 items-center justify-center rounded-xl bg-ink text-paper" href={nextHref}><ChevronRight size={22} /></Link>
-        <button aria-label="Reader settings" type="button" onClick={() => setPanel(panel === "settings" ? null : "settings")} className="absolute -top-14 right-2 flex min-h-11 min-w-11 items-center justify-center rounded-full border border-line bg-[rgb(var(--sheet))]/95 text-ink shadow-soft"><Type size={20} /></button>
       </nav>
     </>
   );
+}
+
+function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { toc: TocItem[]; source: "ablibrary" | "eshia" | "thaqalayn"; bookId: string; volume?: string; page: number; currentChapterName?: string }) {
+  if (!toc.length) return <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>;
+
+  const hasSections = toc.some((item) => item.level === 0);
+  if (!hasSections) {
+    return <><ScrollCurrentToc containerId="mobile-reader-panel" /><div className="space-y-1 text-sm leading-6">{toc.map((item, index) => <MobileTocLink key={`${item.title}-${index}`} item={item} fallbackSource={source} fallbackVolume={volume} currentBookId={bookId} page={page} currentChapterName={currentChapterName} />)}</div></>;
+  }
+
+  const groups: Array<{ section: TocItem; chapters: TocItem[] }> = [];
+  let currentGroup: (typeof groups)[number] | null = null;
+  for (const item of toc) {
+    if (item.level === 0) {
+      currentGroup = { section: item, chapters: [] };
+      groups.push(currentGroup);
+    } else if (currentGroup) {
+      currentGroup.chapters.push(item);
+    }
+  }
+
+  return (
+    <>
+      <ScrollCurrentToc containerId="mobile-reader-panel" />
+      <div className="space-y-2 text-sm leading-6">
+      {groups.map((group, gi) => {
+        const sectionNum = group.section.bookId?.split("/").pop();
+        const isCurrentSection = sectionNum === bookId.split("/")[1];
+        return (
+          <details key={`section-${gi}`} open={isCurrentSection || gi === 0} className="rounded-2xl border border-line/80 bg-paper/40 p-2">
+            <summary className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-2 py-2 text-xs font-semibold text-ink/80 hover:bg-ink/5" dir="auto">
+              {group.section.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{group.section.volume}</span>}
+              <span className="font-sans">{group.section.title}</span>
+            </summary>
+            <div className="mt-1 space-y-1">
+              {group.chapters.length ? group.chapters.map((chapter, ci) => <MobileTocLink key={`ch-${gi}-${ci}`} item={chapter} fallbackSource={source} fallbackVolume={volume} currentBookId={bookId} page={page} currentChapterName={currentChapterName} />) : <MobileTocLink item={group.section} fallbackSource={source} fallbackVolume={volume} currentBookId={bookId} page={page} currentChapterName={currentChapterName} />}
+            </div>
+          </details>
+        );
+      })}
+      </div>
+    </>
+  );
+}
+
+function MobileTocLink({ item, fallbackSource, fallbackVolume, currentBookId, page, currentChapterName }: { item: TocItem; fallbackSource: "ablibrary" | "eshia" | "thaqalayn"; fallbackVolume?: string; currentBookId: string; page: number; currentChapterName?: string }) {
+  const itemSource = item.source ?? fallbackSource;
+  const href = itemSource === "eshia" ? `/read/eshia/${item.bookId}/${item.volume ?? fallbackVolume ?? "1"}/${item.page ?? 1}` : itemSource === "thaqalayn" ? `/read/thaqalayn/${item.bookId}/${item.page ?? 1}` : `/read/ablibrary/${item.bookId}/${item.page ?? 1}`;
+  const active = itemSource === "thaqalayn" ? item.bookId === currentBookId : item.bookId === currentBookId && item.page === page;
+  const title = active && currentChapterName ? currentChapterName : item.title;
+  return (
+    <Link href={href} aria-current={active ? "page" : undefined} data-current-toc={active ? "true" : undefined} className={`flex min-h-11 items-start justify-between gap-3 rounded-xl border border-line/60 bg-paper/40 px-3 py-2 text-ink ${active ? "bg-accent/15 font-semibold ring-1 ring-accent" : ""}`} dir="rtl">
+      <span className="min-w-0 flex-1 text-right font-arabic" dir="auto">{title}</span>
+      {shouldShowTocPage(item) && <span className="shrink-0 whitespace-nowrap pt-1 font-sans text-xs text-muted [unicode-bidi:isolate]" dir="ltr">p. {item.page}</span>}
+    </Link>
+  );
+}
+
+function shouldShowTocPage(item: TocItem) {
+  return !!item.page && !(item.source === "thaqalayn" && item.page === 1);
 }
 
 function Select({ label, value, options, onChange }: { label: string; value: string; options: ReadonlyArray<readonly [string, string]>; onChange: (value: string) => void }) {

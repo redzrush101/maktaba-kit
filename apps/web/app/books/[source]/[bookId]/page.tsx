@@ -37,7 +37,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
             {book?.pages && <span className="rounded-full border border-line px-3 py-1">{book.pages} pages</span>}
             {book?.volume && <span className="rounded-full border border-line px-3 py-1">volume {book.volume}</span>}
           </div>
-          {!!categories.length && <div className="mt-4 flex flex-wrap gap-2 font-arabic text-sm text-muted" dir="rtl">{categories.map((category, i) => category.name ? (category.id ? <Link key={`${category.name}-${i}`} href={`/categories/${category.id}`} className="rounded-full border border-line px-3 py-1 hover:text-ink">{category.name}</Link> : <span key={`${category.name}-${i}`} className="rounded-full border border-line px-3 py-1">{category.name}</span>) : null)}</div>}
+          {!!categories.length && <div className="mt-4 flex flex-wrap gap-2 font-arabic text-sm text-muted" dir="rtl">{categories.map((category, i) => category.name ? (category.id ? <Link key={`${category.name}-${i}`} href={`/categories/${category.id}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 py-2 hover:text-ink">{category.name}</Link> : <span key={`${category.name}-${i}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 py-2">{category.name}</span>) : null)}</div>}
           <div className="mt-5 flex flex-wrap gap-2 font-sans text-sm" dir="ltr">
             <Link href={readHref} className="rounded-full bg-ink px-4 py-2 font-semibold text-paper">Read</Link>
             {book?.url && <a href={book.url} target="_blank" className="rounded-full border border-line px-4 py-2 text-ink">Original</a>}
@@ -47,11 +47,11 @@ export default async function BookPage({ params, searchParams }: { params: Promi
         {volumes.length > 0 && (
           <section className="mt-4 rounded-2xl border border-line bg-paper/60 p-4">
             <h2 className="mb-3 font-sans text-xl font-semibold">Volumes</h2>
-            <div className="flex flex-wrap gap-2" dir="ltr">
+            <div className="flex snap-x gap-2 overflow-x-auto pb-1" dir="ltr">
               {volumes.map((v) => {
                 const href = source === "eshia" ? `/books/${source}/${bookId}?volume=${v.value}` : source === "thaqalayn" ? `/books/thaqalayn/${v.value}` : `/books/ablibrary/${v.value}`;
                 const active = source === "eshia" ? v.value === volume : v.value === bookId;
-                return <Link key={v.value} href={href} className={`rounded-lg border border-line px-3 py-1.5 font-sans text-sm ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
+                return <Link key={v.value} href={href} className={`inline-flex min-h-11 shrink-0 snap-start items-center rounded-full border border-line px-4 py-2 font-sans text-sm ${active ? "bg-ink text-paper" : "text-ink"}`}>{v.label}</Link>;
               })}
             </div>
           </section>
@@ -64,24 +64,65 @@ export default async function BookPage({ params, searchParams }: { params: Promi
 
         <section className="mt-4 rounded-2xl border border-line bg-paper/60 p-4">
           <h2 className="mb-3 font-sans text-xl font-semibold">Table of contents</h2>
-          {tocRes.data.length ? (
-            <div className="space-y-1">
-              {tocRes.data.map((item, i) => {
-                if (item.level === 0) {
-                  return (
-                    <div key={`section-${i}`} className="flex items-center gap-2 py-1">
-                      {item.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{item.volume}</span>}
-                      <p className="font-sans text-xs font-semibold text-ink/80" dir="auto">{item.title}</p>
-                    </div>
-                  );
-                }
-                const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page });
-                return <Link key={`${item.title}-${i}`} href={href} className="mr-3 block rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 font-arabic text-ink hover:bg-ink/5" dir="auto"><span>{item.title}</span>{item.page && <span className="mr-2 font-sans text-xs text-muted" dir="ltr">p. {item.page}</span>}</Link>;
-              })}
-            </div>
-          ) : <p className="font-sans text-muted">No table of contents available.</p>}
+          {tocRes.data.length ? <BookTocAccordion items={tocRes.data} volume={volume} /> : <p className="font-sans text-muted">No table of contents available.</p>}
         </section>
       </section>
     </main>
   );
+}
+
+type BookTocItem = Awaited<ReturnType<typeof maktabaClient.toc>>["data"][number];
+
+function BookTocAccordion({ items, volume }: { items: BookTocItem[]; volume: string }) {
+  const hasSections = items.some((item) => item.level === 0);
+
+  if (!hasSections) {
+    return (
+      <div className="space-y-1">
+        {items.map((item, index) => <TocLink key={`${item.title}-${index}`} item={item} volume={volume} />)}
+      </div>
+    );
+  }
+
+  const groups: Array<{ section: BookTocItem; chapters: BookTocItem[] }> = [];
+  let currentGroup: (typeof groups)[number] | null = null;
+
+  for (const item of items) {
+    if (item.level === 0) {
+      currentGroup = { section: item, chapters: [] };
+      groups.push(currentGroup);
+    } else if (currentGroup) {
+      currentGroup.chapters.push(item);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {groups.map((group, index) => (
+        <details key={`toc-group-${index}`} open={index === 0} className="rounded-2xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-2">
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 rounded-xl px-2 py-2 font-sans text-xs font-semibold text-ink/80 hover:bg-ink/5" dir="auto">
+            {group.section.volume && <span className="shrink-0 rounded bg-ink/10 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-muted">{group.section.volume}</span>}
+            <span>{group.section.title}</span>
+          </summary>
+          <div className="mt-1 space-y-1">
+            {group.chapters.length ? group.chapters.map((item, i) => <TocLink key={`${item.title}-${index}-${i}`} item={item} volume={volume} />) : <TocLink item={group.section} volume={volume} />}
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function TocLink({ item, volume }: { item: BookTocItem; volume: string }) {
+  const href = readerPath({ source: item.source, bookId: item.bookId, volume: item.volume ?? volume, page: item.page ?? 1 });
+  return (
+    <Link href={href} className="flex min-h-11 items-start justify-between gap-3 rounded-xl border border-line/80 bg-[rgb(var(--sheet))]/60 p-3 text-ink hover:bg-ink/5" dir="rtl">
+      <span className="min-w-0 flex-1 text-right font-arabic" dir="auto">{item.title}</span>
+      {shouldShowTocPage(item) && <span className="shrink-0 whitespace-nowrap pt-1 font-sans text-xs text-muted [unicode-bidi:isolate]" dir="ltr">p. {item.page}</span>}
+    </Link>
+  );
+}
+
+function shouldShowTocPage(item: BookTocItem) {
+  return !!item.page && !(item.source === "thaqalayn" && item.page === 1);
 }
