@@ -37,3 +37,6 @@ pnpm-debug.log*
 .vercel/
 .vercel
 .env*
+
+.agents/
+*skills*

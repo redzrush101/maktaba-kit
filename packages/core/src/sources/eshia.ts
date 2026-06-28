@@ -32,7 +32,8 @@ export class EshiaSource {
 
     const totalPages = total ? Math.ceil(total / 10) : 1;
     const pagesNeeded = wantsAll ? totalPages : Math.ceil(limit / 10);
-    const maxPage = Math.min(page + Math.max(1, pagesNeeded) - 1, page + 199, totalPages || page);
+    const maxCrawlPages = 25;
+    const maxPage = Math.min(page + Math.max(1, pagesNeeded) - 1, page + maxCrawlPages - 1, totalPages || page);
     for (let current = page + 1; current <= maxPage && out.length < target; current++) {
       const before = out.length;
       const $ = await this.soup(`${this.base}${path}?page=${current}`);

@@ -67,14 +67,14 @@ export class MaktabaClient {
     let out = postProcessSearchResults(data, cleanQuery, options);
     if (!wantsAll) out = out.slice(0, limit);
     out = out.map((r) => ({ ...r, snippet: trim(r.snippet, options.context ?? 320, cleanQuery) }));
-    return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
+    return apiResponse(out, errors, cleanQuery);
   }
 
   async books(query: string, options: SearchOptions = {}): Promise<ApiResponse<Book[]>> {
     const cleanQuery = query.trim();
     const { data, errors } = await this.many<Book>(options.source ?? "all", (s) => s.books(cleanQuery, options.limit ?? 10, options.page ?? 1));
     const out = postProcessBooks(data, cleanQuery, options);
-    return { ok: !errors.length || out.length > 0, data: out, errors, query: cleanQuery };
+    return apiResponse(out, errors, cleanQuery);
   }
 
   async read(ref: string): Promise<ApiResponse<Page[]>> {
@@ -136,6 +136,11 @@ export class MaktabaClient {
 
 export function createMaktabaClient(options?: MaktabaClientOptions) {
   return new MaktabaClient(options);
+}
+
+function apiResponse<T>(data: T[], errors: SourceError[], query?: string): ApiResponse<T[]> {
+  if (!errors.length || data.length > 0) return { ok: true, data, errors, query };
+  return { ok: false, data: [], errors, query };
 }
 
 function toSourceError(source: SourceName, error: unknown): SourceError {

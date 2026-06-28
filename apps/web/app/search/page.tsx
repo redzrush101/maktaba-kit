@@ -1,12 +1,11 @@
-import { type Book, type SearchResult, type SourceSelect } from "@maktaba-kit/core";
+import { type Book, type SearchResult, type SourceSelect } from "@maktaba-kit/core/client";
 import { maktabaClient } from "@/lib/maktaba-client";
+import { parseLimit, parseMode, parsePositiveInt, sourceParamValue, type SearchMode } from "@/lib/search-params";
 import Link from "next/link";
 import { BookCard } from "@/components/BookCard";
 import { Header } from "@/components/Header";
 import { ResultCard } from "@/components/ResultCard";
 import { SearchBox } from "@/components/SearchBox";
-
-type SearchMode = "all" | "text" | "books";
 
 type SearchResponse = { data: SearchResult[]; errors: Array<{ source: string; message: string }>; ok: boolean };
 type BooksResponse = { data: Book[]; errors: Array<{ source: string; message: string }>; ok: boolean };
@@ -14,11 +13,11 @@ type BooksResponse = { data: Book[]; errors: Array<{ source: string; message: st
 export default async function SearchPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
   const q = params.q ?? "";
-  const source = (params.source ?? "all") as SourceSelect;
+  const source = sourceParamValue(params.source);
   const mode = parseMode(params.mode);
   const bookId = params.bookId;
   const volume = params.volume;
-  const limit = parseLimit(params.limit, 25, 200);
+  const limit = parseLimit(params.limit, 25, 200, 10);
   const page = parsePositiveInt(params.page, 1);
   const strictVolume = params.strictVolume === "1";
   const exact = params.exact === "1";
@@ -98,21 +97,6 @@ function searchHref(current: { q: string; source: SourceSelect; mode: SearchMode
     ...(current.exact ? { exact: "1" } : {}),
     ...(current.matchAll ? { matchAll: "1" } : {}),
   }).toString()}`;
-}
-
-function parseMode(value: string | undefined): SearchMode {
-  return value === "text" || value === "books" || value === "all" ? value : "all";
-}
-
-function parseLimit(value: string | undefined, fallback: number, max: number) {
-  if (value === "all") return 0;
-  const parsed = Number(value ?? fallback);
-  return Number.isFinite(parsed) ? Math.min(max, Math.max(10, parsed)) : fallback;
-}
-
-function parsePositiveInt(value: string | undefined, fallback: number) {
-  const parsed = Number(value ?? fallback);
-  return Number.isFinite(parsed) ? Math.max(1, parsed) : fallback;
 }
 
 function emptySearch(): SearchResponse {

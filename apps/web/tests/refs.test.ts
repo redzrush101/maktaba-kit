@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bookPath, parseRef, readerPath } from "@maktaba-kit/core";
+import { bookPath, parseRef, readerPath } from "@maktaba-kit/core/client";
 
 describe("references", () => {
   it("parses eShia shorthand refs", () => {

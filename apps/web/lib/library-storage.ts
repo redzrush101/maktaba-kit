@@ -15,11 +15,15 @@ export type LibraryItem = {
 export const bookmarksKey = "maktaba-bookmarks";
 export const recentKey = "maktaba-recent";
 
+const storageVersion = 1;
+type StoredLibraryItems = { version: typeof storageVersion; items: LibraryItem[] };
+
 export function readItems(key: string): LibraryItem[] {
   if (typeof window === "undefined") return [];
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter(isLibraryItem) : [];
+    const parsed = JSON.parse(window.localStorage.getItem(key) ?? "[]") as unknown;
+    const items = Array.isArray(parsed) ? parsed : isStoredLibraryItems(parsed) ? parsed.items : [];
+    return items.filter(isLibraryItem);
   } catch {
     window.localStorage.removeItem(key);
     return [];
@@ -27,7 +31,8 @@ export function readItems(key: string): LibraryItem[] {
 }
 
 export function writeItems(key: string, items: LibraryItem[]) {
-  window.localStorage.setItem(key, JSON.stringify(items));
+  const payload: StoredLibraryItems = { version: storageVersion, items };
+  window.localStorage.setItem(key, JSON.stringify(payload));
 }
 
 export function upsertItem(key: string, item: Omit<LibraryItem, "createdAt" | "updatedAt">, limit = 100) {
@@ -43,6 +48,22 @@ export function removeItem(key: string, ref: string) {
   writeItems(key, readItems(key).filter((item) => item.ref !== ref));
 }
 
+function isStoredLibraryItems(value: unknown): value is StoredLibraryItems {
+  return Boolean(value && typeof value === "object" && (value as { version?: unknown }).version === storageVersion && Array.isArray((value as { items?: unknown }).items));
+}
+
 function isLibraryItem(value: unknown): value is LibraryItem {
-  return Boolean(value && typeof value === "object" && "ref" in value && "url" in value);
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<Record<keyof LibraryItem, unknown>>;
+  return typeof item.ref === "string"
+    && (item.source === "ablibrary" || item.source === "eshia" || item.source === "thaqalayn")
+    && typeof item.bookId === "string"
+    && typeof item.page === "number"
+    && typeof item.url === "string"
+    && typeof item.createdAt === "string"
+    && typeof item.updatedAt === "string"
+    && (item.volume === undefined || typeof item.volume === "string")
+    && (item.title === undefined || typeof item.title === "string")
+    && (item.author === undefined || typeof item.author === "string")
+    && (item.note === undefined || typeof item.note === "string");
 }

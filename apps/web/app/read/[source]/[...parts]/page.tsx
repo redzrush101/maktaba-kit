@@ -1,4 +1,4 @@
-import { groupTocSections, readerPath, readerRefFromParts, refString, splitArabicEnglish, type TocItem } from "@maktaba-kit/core";
+import { groupTocSections, readerPath, readerRefFromParts, refString, splitArabicEnglish, type TocItem } from "@maktaba-kit/core/client";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
@@ -10,6 +10,7 @@ import { ReaderSettings } from "@/components/ReaderSettings";
 import { SourceBadge } from "@/components/SourceBadge";
 import { ScrollCurrentToc } from "@/components/ScrollCurrentToc";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type VolumeOption = { label: string; value: string };
@@ -17,6 +18,7 @@ type VolumeOption = { label: string; value: string };
 export default async function ReaderPage({ params }: { params: Promise<{ source: string; parts: string[] }> }) {
   const { source, parts } = await params;
   const parsedRef = readerRefFromParts(source, parts);
+  if (!parsedRef.bookId || !Number.isFinite(parsedRef.page ?? 1)) notFound();
   const sourceName = parsedRef.source;
   const bookId = parsedRef.bookId;
   const volume = parsedRef.volume;

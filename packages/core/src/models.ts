@@ -69,12 +69,21 @@ export type SourceError = {
   message: string;
 };
 
-export type ApiResponse<T> = {
-  ok: boolean;
+export type ApiSuccess<T> = {
+  ok: true;
   data: T;
   errors: SourceError[];
   query?: string;
 };
+
+export type ApiFailure = {
+  ok: false;
+  data: [];
+  errors: SourceError[];
+  query?: string;
+};
+
+export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 
 export type SearchOptions = {
   source?: SourceSelect;

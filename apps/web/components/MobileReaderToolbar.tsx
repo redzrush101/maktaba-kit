@@ -2,8 +2,9 @@
 
 import { Bookmark, Check, List, SlidersHorizontal, Type, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { groupTocSections, readerPath, type TocItem } from "@maktaba-kit/core";
+import { groupTocSections, readerPath, type TocItem } from "@maktaba-kit/core/client";
 import { type BookmarkInput, useLibraryBookmark } from "./useLibraryBookmark";
 import { ScrollCurrentToc } from "./ScrollCurrentToc";
 import { type ReaderSettingsState, readerSettingsOptions, useReaderSettings } from "./useReaderSettings";
@@ -39,6 +40,7 @@ export function MobileReaderToolbar({
   pageUrl?: string;
   currentChapterName?: string;
 }) {
+  const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
   const [jump, setJump] = useState(String(page));
   const { bookmarked, toggleBookmark } = useLibraryBookmark(bookmarkItem);
@@ -46,7 +48,7 @@ export function MobileReaderToolbar({
 
   function goToPage() {
     const parsed = Math.max(1, Math.min(maxPage ?? Number.POSITIVE_INFINITY, Number(jump) || 1));
-    window.location.href = readerPath({ source, bookId, volume, page: parsed });
+    router.push(readerPath({ source, bookId, volume, page: parsed }));
   }
 
   return (

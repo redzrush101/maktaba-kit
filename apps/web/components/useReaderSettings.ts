@@ -31,36 +31,60 @@ export const readerSettingsOptions = {
   font: [["amiri", "Amiri"], ["serif", "Serif"], ["sans", "Sans"]],
 } as const;
 
-const storageKey = "maktaba-reader-settings";
+export const readerSettingsStorageKey = "maktaba-reader-settings";
 
 export function useReaderSettings() {
   const [settings, setSettings] = useState<ReaderSettingsState>(readerSettingsDefaults);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return;
-    try {
-      setSettings({ ...readerSettingsDefaults, ...JSON.parse(saved) });
-    } catch {
-      window.localStorage.removeItem(storageKey);
+    const saved = window.localStorage.getItem(readerSettingsStorageKey);
+    if (saved) {
+      try {
+        setSettings(parseReaderSettings(JSON.parse(saved)));
+      } catch {
+        window.localStorage.removeItem(readerSettingsStorageKey);
+      }
     }
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle("light", settings.theme === "light");
-    root.classList.toggle("sepia", settings.theme === "sepia");
-    root.dataset.readerSize = settings.size;
-    root.dataset.readerLeading = settings.leading;
-    root.dataset.readerWidth = settings.width;
-    root.dataset.readerColumns = settings.columns;
-    root.dataset.readerFont = settings.font;
-    window.localStorage.setItem(storageKey, JSON.stringify(settings));
-  }, [settings]);
+    applyReaderSettings(settings);
+    if (loaded) window.localStorage.setItem(readerSettingsStorageKey, JSON.stringify(settings));
+  }, [loaded, settings]);
 
   function update<K extends ReaderSettingsKey>(name: K, value: ReaderSettingsState[K]) {
     setSettings((current) => ({ ...current, [name]: value }));
   }
 
   return { settings, update };
+}
+
+export function applyReaderSettings(settings: ReaderSettingsState) {
+  const root = document.documentElement;
+  root.classList.toggle("light", settings.theme === "light");
+  root.classList.toggle("sepia", settings.theme === "sepia");
+  root.dataset.readerSize = settings.size;
+  root.dataset.readerLeading = settings.leading;
+  root.dataset.readerWidth = settings.width;
+  root.dataset.readerColumns = settings.columns;
+  root.dataset.readerFont = settings.font;
+}
+
+function parseReaderSettings(value: unknown): ReaderSettingsState {
+  const input = value && typeof value === "object" ? value as Partial<Record<ReaderSettingsKey, unknown>> : {};
+  return {
+    theme: optionValue("theme", input.theme),
+    size: optionValue("size", input.size),
+    leading: optionValue("leading", input.leading),
+    width: optionValue("width", input.width),
+    columns: optionValue("columns", input.columns),
+    font: optionValue("font", input.font),
+  };
+}
+
+function optionValue<K extends ReaderSettingsKey>(key: K, value: unknown): ReaderSettingsState[K] {
+  const allowed = readerSettingsOptions[key].map(([option]) => option);
+  return (typeof value === "string" && (allowed as readonly string[]).includes(value) ? value : readerSettingsDefaults[key]) as ReaderSettingsState[K];
 }

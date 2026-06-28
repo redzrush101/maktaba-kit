@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { includesNormalized, matchesAllTokens, normalizeArabic, scoreBook, searchTokens } from "@maktaba-kit/core";
+import { includesNormalized, matchesAllTokens, normalizeArabic, scoreBook, searchTokens } from "@maktaba-kit/core/client";
 
 describe("search utilities", () => {
   it("normalizes Arabic and Latin variants and diacritics", () => {

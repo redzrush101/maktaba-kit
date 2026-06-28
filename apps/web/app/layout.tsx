@@ -12,8 +12,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${arabic.variable} ${sans.variable}`}>
+    <html lang="en" dir="ltr" className={`${arabic.variable} ${sans.variable}`} suppressHydrationWarning>
       <body className="bg-paper text-ink antialiased">
+        <script dangerouslySetInnerHTML={{ __html: readerSettingsScript }} />
         <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(var(--accent)/.10),transparent_28rem)]">
           {children}
         </div>
@@ -21,3 +22,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
+const readerSettingsScript = `
+try {
+  const settings = JSON.parse(localStorage.getItem("maktaba-reader-settings") || "{}");
+  const root = document.documentElement;
+  root.classList.toggle("light", settings.theme === "light");
+  root.classList.toggle("sepia", settings.theme === "sepia");
+  if (settings.size) root.dataset.readerSize = settings.size;
+  if (settings.leading) root.dataset.readerLeading = settings.leading;
+  if (settings.width) root.dataset.readerWidth = settings.width;
+  if (settings.columns) root.dataset.readerColumns = settings.columns;
+  if (settings.font) root.dataset.readerFont = settings.font;
+} catch {}
+`;

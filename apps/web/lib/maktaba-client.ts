@@ -1,4 +1,4 @@
-import { createMaktabaClient, MemoryCache, type CacheStore } from "@maktaba-kit/core";
+import { createMaktabaClient, MemoryCache, type CacheStore } from "@maktaba-kit/core/server";
 
 const ttlMs = Number(process.env.MAKTABA_CACHE_TTL_MS ?? 86_400_000);
 const localCache = new MemoryCache(ttlMs, true, Number(process.env.MAKTABA_MEMORY_CACHE_ENTRIES ?? 1_000));
@@ -61,4 +61,5 @@ export const maktabaClient = createMaktabaClient({
   timeoutMs: 18_000,
   ttlMs,
   cacheStore: createCacheStore(),
+  userAgent: process.env.MAKTABA_USER_AGENT,
 });

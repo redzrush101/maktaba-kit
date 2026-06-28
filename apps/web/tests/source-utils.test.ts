@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arrayOfObjects, asNumber, asObj, asString, cleanWhitespace } from "@maktaba-kit/core";
+import { arrayOfObjects, asNumber, asObj, asString, cleanWhitespace } from "@maktaba-kit/core/client";
 
 describe("source utilities", () => {
   it("safely reads basic values", () => {

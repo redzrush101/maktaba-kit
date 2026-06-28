@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cacheKey, MemoryCache } from "@maktaba-kit/core";
+import { cacheKey, MemoryCache } from "@maktaba-kit/core/server";
 
 describe("MemoryCache", () => {
   it("does not read or write when disabled", () => {

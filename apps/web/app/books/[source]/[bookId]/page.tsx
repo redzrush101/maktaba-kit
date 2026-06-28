@@ -1,4 +1,4 @@
-import { groupTocSections, normalizeSource, readerPath, refString } from "@maktaba-kit/core";
+import { groupTocSections, normalizeSource, readerPath, refString } from "@maktaba-kit/core/client";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
 import { SearchBox } from "@/components/SearchBox";

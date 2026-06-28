@@ -1,4 +1,4 @@
-import { bookPath, type Book } from "@maktaba-kit/core";
+import { bookPath, type Book } from "@maktaba-kit/core/client";
 import Link from "next/link";
 import { SourceBadge } from "./SourceBadge";
 

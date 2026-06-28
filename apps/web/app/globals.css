@@ -34,6 +34,10 @@
 html { background: rgb(var(--paper)); color: rgb(var(--ink)); }
 body { min-height: 100vh; font-family: var(--font-sans), system-ui, sans-serif; }
 ::selection { background: rgb(var(--accent) / .22); }
+:where(a, button, input, select, summary):focus-visible {
+  outline: 2px solid rgb(var(--accent) / .7);
+  outline-offset: 3px;
+}
 
 .reader-shell { max-width: 72rem; }
 [data-reader-width="narrow"] .reader-shell { max-width: 54rem; }
