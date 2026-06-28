@@ -35,3 +35,5 @@ pnpm-debug.log*
 .cache/
 .turbo/
 .vercel/
+.vercel
+.env*
