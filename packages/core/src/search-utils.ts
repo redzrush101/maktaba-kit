@@ -107,7 +107,8 @@ function scorePreparedSearchResult(result: SearchResult, normalized: NormalizedS
   if (!query.normalized || normalized.title.includes(query.normalized)) score += 80;
   if (!query.normalized || normalized.author.includes(query.normalized)) score += 60;
   if (query.tokens.length && query.tokens.every((token) => normalized.text.includes(token))) score += 50;
-  score += query.tokens.filter((token) => normalized.text.includes(token)).length * 8;
+  score += weightedTokenScore(normalized.text, query.tokens);
+  score += proximityScore(normalized.snippet, query.tokens);
   if (result.hitCount) score += Math.min(25, Math.log10(result.hitCount + 1) * 8);
   if (result.page) score += 5;
   return score;
@@ -118,9 +119,23 @@ function scorePreparedBook(book: Book, normalized: NormalizedBook, query: Prepar
   if (!query.normalized || normalized.title.includes(query.normalized)) score += 100;
   if (!query.normalized || normalized.author.includes(query.normalized)) score += 90;
   if (query.tokens.length && query.tokens.every((token) => normalized.text.includes(token))) score += 50;
-  score += query.tokens.filter((token) => normalized.text.includes(token)).length * 10;
+  score += weightedTokenScore(normalized.text, query.tokens, 10);
   if (book.pages) score += 3;
   return score;
+}
+
+function weightedTokenScore(text: string, tokens: string[], base = 8) {
+  return tokens.reduce((score, token, index) => {
+    if (!text.includes(token)) return score;
+    return score + Math.max(base, base + (tokens.length - index - 1) * 3);
+  }, 0);
+}
+
+function proximityScore(text: string, tokens: string[]) {
+  const positions = tokens.map((token) => text.indexOf(token)).filter((pos) => pos >= 0);
+  if (positions.length < 2) return 0;
+  const span = Math.max(...positions) - Math.min(...positions);
+  return Math.max(0, 32 - Math.floor(span / 18));
 }
 
 export function sortSearchResults(results: SearchResult[], query: string) {

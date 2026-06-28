@@ -194,8 +194,9 @@ export class RafedSource implements LibrarySource {
 
     const $ = cheerio.load(output);
     const results: SearchResult[] = [];
+    const maxRows = limit <= 0 ? Number.POSITIVE_INFINITY : Math.max(limit, 500);
     $("li.resrowt").each((_, row) => {
-      if (results.length >= limit) return false;
+      if (results.length >= maxRows) return false;
       const r = parseInBookRow($(row));
       if (r) {
         r.bookId = bookId;

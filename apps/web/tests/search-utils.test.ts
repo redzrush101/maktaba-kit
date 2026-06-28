@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { includesNormalized, matchesAllTokens, normalizeArabic, scoreBook, searchTokens } from "@maktaba-kit/core/client";
+import { includesNormalized, matchesAllTokens, normalizeArabic, scoreBook, scoreSearchResult, searchTokens } from "@maktaba-kit/core/client";
 
 describe("search utilities", () => {
   it("normalizes Arabic and Latin variants and diacritics", () => {
@@ -21,6 +21,24 @@ describe("search utilities", () => {
     const exact = scoreBook({ source: "ablibrary", id: "1", title: "الكافي", author: "الكليني" }, "الكافي");
     const weak = scoreBook({ source: "ablibrary", id: "2", title: "تهذيب الأحكام" }, "الكافي");
     expect(exact).toBeGreaterThan(weak);
+  });
+
+  it("prioritizes earlier query terms over later broad matches", () => {
+    const focused = scoreSearchResult({
+      source: "rafed",
+      kind: "text",
+      bookId: "1858",
+      page: 269,
+      snippet: "بشرط حذف فاعل وتهيئه تكون فى الفعل بهذا منبئه فالأوّل اضمم مطلقا",
+    }, "وتهيئة الفعل لذلك بضم أوله");
+    const broad = scoreSearchResult({
+      source: "rafed",
+      kind: "text",
+      bookId: "1858",
+      page: 260,
+      snippet: "قد تقدم التنبيه على أن الفعل والفاعل كجزأى كلمة ولذلك لم يستغن عن الفاعل",
+    }, "وتهيئة الفعل لذلك بضم أوله");
+    expect(focused).toBeGreaterThan(broad);
   });
 
   it("tokenizes punctuation", () => {
