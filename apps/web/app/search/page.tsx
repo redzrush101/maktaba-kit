@@ -18,8 +18,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const mode = parseMode(params.mode);
   const bookId = params.bookId;
   const volume = params.volume;
-  const limit = params.limit === "all" ? 0 : Math.min(200, Math.max(10, Number(params.limit ?? 25)));
-  const page = Math.max(1, Number(params.page ?? 1));
+  const limit = parseLimit(params.limit, 25, 200);
+  const page = parsePositiveInt(params.page, 1);
   const strictVolume = params.strictVolume === "1";
   const exact = params.exact === "1";
   const matchAll = params.matchAll === "1";
@@ -102,6 +102,17 @@ function searchHref(current: { q: string; source: SourceSelect; mode: SearchMode
 
 function parseMode(value: string | undefined): SearchMode {
   return value === "text" || value === "books" || value === "all" ? value : "all";
+}
+
+function parseLimit(value: string | undefined, fallback: number, max: number) {
+  if (value === "all") return 0;
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? Math.min(max, Math.max(10, parsed)) : fallback;
+}
+
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) ? Math.max(1, parsed) : fallback;
 }
 
 function emptySearch(): SearchResponse {

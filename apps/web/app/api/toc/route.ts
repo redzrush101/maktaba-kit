@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { badRequest, client, requestUrl } from "../_shared";
+import { badRequest, client, limitParam, requestUrl } from "../_shared";
 
 export async function GET(req: Request) {
-  const ref = requestUrl(req).searchParams.get("ref") ?? "";
+  const url = requestUrl(req);
+  const ref = url.searchParams.get("ref") ?? "";
   if (!ref) return badRequest("ref is required");
-  const limit = Number(requestUrl(req).searchParams.get("limit")) || undefined;
+  const limit = limitParam(url, 100, 500);
 
   return NextResponse.json(await client().toc(ref, limit));
 }

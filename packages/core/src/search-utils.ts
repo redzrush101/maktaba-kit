@@ -57,42 +57,86 @@ export function dedupeBooks(books: Book[]) {
   });
 }
 
+type PreparedQuery = { normalized: string; tokens: string[] };
+
+type NormalizedSearchResult = {
+  text: string;
+  snippet: string;
+  title: string;
+  author: string;
+};
+
+type NormalizedBook = {
+  text: string;
+  title: string;
+  author: string;
+};
+
+function prepareQuery(query: string): PreparedQuery {
+  return { normalized: normalizeArabic(query), tokens: searchTokens(query) };
+}
+
+function normalizedSearchResult(result: SearchResult): NormalizedSearchResult {
+  const title = normalizeArabic(result.bookTitle);
+  const author = normalizeArabic(result.author);
+  return {
+    text: normalizeArabic([result.snippet, result.bookTitle, result.author].filter(Boolean).join(" ")),
+    snippet: normalizeArabic(result.snippet),
+    title,
+    author,
+  };
+}
+
+function normalizedBook(book: Book): NormalizedBook {
+  const title = normalizeArabic(book.title);
+  const author = normalizeArabic(book.author);
+  return { text: normalizeArabic(`${book.title ?? ""} ${book.author ?? ""}`), title, author };
+}
+
 export function scoreSearchResult(result: SearchResult, query: string) {
-  const text = [result.snippet, result.bookTitle, result.author].filter(Boolean).join(" ");
-  const title = result.bookTitle ?? "";
-  const author = result.author ?? "";
-  const tokens = searchTokens(query);
+  return scorePreparedSearchResult(result, normalizedSearchResult(result), prepareQuery(query));
+}
+
+export function scoreBook(book: Book, query: string) {
+  return scorePreparedBook(book, normalizedBook(book), prepareQuery(query));
+}
+
+function scorePreparedSearchResult(result: SearchResult, normalized: NormalizedSearchResult, query: PreparedQuery) {
   let score = 0;
-  if (includesNormalized(result.snippet, query)) score += 100;
-  if (includesNormalized(title, query)) score += 80;
-  if (includesNormalized(author, query)) score += 60;
-  if (tokens.length && matchesAllTokens(text, query)) score += 50;
-  score += tokens.filter((token) => normalizeArabic(text).includes(token)).length * 8;
+  if (!query.normalized || normalized.snippet.includes(query.normalized)) score += 100;
+  if (!query.normalized || normalized.title.includes(query.normalized)) score += 80;
+  if (!query.normalized || normalized.author.includes(query.normalized)) score += 60;
+  if (query.tokens.length && query.tokens.every((token) => normalized.text.includes(token))) score += 50;
+  score += query.tokens.filter((token) => normalized.text.includes(token)).length * 8;
   if (result.hitCount) score += Math.min(25, Math.log10(result.hitCount + 1) * 8);
   if (result.page) score += 5;
   return score;
 }
 
-export function scoreBook(book: Book, query: string) {
-  const title = book.title ?? "";
-  const author = book.author ?? "";
-  const text = `${title} ${author}`;
-  const tokens = searchTokens(query);
+function scorePreparedBook(book: Book, normalized: NormalizedBook, query: PreparedQuery) {
   let score = 0;
-  if (includesNormalized(title, query)) score += 100;
-  if (includesNormalized(author, query)) score += 90;
-  if (tokens.length && matchesAllTokens(text, query)) score += 50;
-  score += tokens.filter((token) => normalizeArabic(text).includes(token)).length * 10;
+  if (!query.normalized || normalized.title.includes(query.normalized)) score += 100;
+  if (!query.normalized || normalized.author.includes(query.normalized)) score += 90;
+  if (query.tokens.length && query.tokens.every((token) => normalized.text.includes(token))) score += 50;
+  score += query.tokens.filter((token) => normalized.text.includes(token)).length * 10;
   if (book.pages) score += 3;
   return score;
 }
 
 export function sortSearchResults(results: SearchResult[], query: string) {
-  return [...results].sort((a, b) => scoreSearchResult(b, query) - scoreSearchResult(a, query));
+  const preparedQuery = prepareQuery(query);
+  return results
+    .map((result) => ({ result, score: scorePreparedSearchResult(result, normalizedSearchResult(result), preparedQuery) }))
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.result);
 }
 
 export function sortBooks(books: Book[], query: string) {
-  return [...books].sort((a, b) => scoreBook(b, query) - scoreBook(a, query));
+  const preparedQuery = prepareQuery(query);
+  return books
+    .map((book) => ({ book, score: scorePreparedBook(book, normalizedBook(book), preparedQuery) }))
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.book);
 }
 
 export function postProcessSearchResults(results: SearchResult[], query: string, options: SearchOptions = {}) {

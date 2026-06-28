@@ -1,9 +1,8 @@
-import { readerPath } from "@maktaba-kit/core";
+import { groupTocSections, readerPath, readerRefFromParts, refString, splitArabicEnglish, type TocItem } from "@maktaba-kit/core";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { LibraryActions } from "@/components/LibraryActions";
-import type { TocItem } from "@maktaba-kit/core";
 import { ReaderTextToggle } from "@/components/ReaderTextToggle";
 import { MobileReaderToolbar } from "@/components/MobileReaderToolbar";
 import { PageJump } from "@/components/PageJump";
@@ -17,10 +16,11 @@ type VolumeOption = { label: string; value: string };
 
 export default async function ReaderPage({ params }: { params: Promise<{ source: string; parts: string[] }> }) {
   const { source, parts } = await params;
-  const sourceName: "ablibrary" | "eshia" | "thaqalayn" = source === "eshia" ? "eshia" : source === "thaqalayn" ? "thaqalayn" : "ablibrary";
-  const bookId = sourceName === "thaqalayn" ? parts.slice(0, -1).join("/") : parts[0];
-  const volume = sourceName === "eshia" ? parts[1] ?? "1" : undefined;
-  const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : sourceName === "thaqalayn" ? `thaqalayn:${bookId}/${parts.at(-1) ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
+  const parsedRef = readerRefFromParts(source, parts);
+  const sourceName = parsedRef.source;
+  const bookId = parsedRef.bookId;
+  const volume = parsedRef.volume;
+  const ref = refString(parsedRef);
   const [res, infoRes, tocRes] = await Promise.all([maktabaClient.read(ref), maktabaClient.info(ref), maktabaClient.toc(ref, 500)]);
   const page = res.data[0];
   const info = infoRes.data[0];
@@ -30,9 +30,9 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const prevPage = Math.max(1, pageNo - 1);
   const nextPage = maxPage ? Math.min(maxPage, pageNo + 1) : pageNo + 1;
   const prevHref = readerPath({ source: sourceName, bookId, volume, page: prevPage });
-  const nextHref = await resolveNextHref({ sourceName, bookId, volume, pageNo, nextPage, toc: tocRes.data });
+  const nextHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
   const progress = maxPage ? `${Math.min(100, Math.max(2, (pageNo / maxPage) * 100))}%` : "3%";
-  const splitText = splitReaderText(page?.text || "", page?.meta?.textEn as string | undefined);
+  const splitText = splitArabicEnglish(page?.text || "", page?.meta?.textEn as string | undefined);
   const arabicText = splitText.arabic || page?.text || "No text is available for this page.";
   const englishText = splitText.english;
   const twoColumnText = arabicText.length > 1800;
@@ -150,59 +150,13 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   );
 }
 
-async function resolveNextHref({ sourceName, bookId, volume, pageNo, nextPage, toc }: { sourceName: "ablibrary" | "eshia" | "thaqalayn"; bookId: string; volume?: string; pageNo: number; nextPage: number; toc: TocItem[] }) {
-  const regularHref = readerPath({ source: sourceName, bookId, volume, page: nextPage });
-  if (sourceName !== "thaqalayn") return regularHref;
-
-  const nextRes = await maktabaClient.read(`thaqalayn:${bookId}/${pageNo + 1}`);
-  const nextPageData = nextRes.data[0];
-  if (nextPageData?.text?.trim() || typeof nextPageData?.meta?.textEn === "string") return regularHref;
-
-  const nextChapter = findNextChapter(toc, bookId);
-  return nextChapter ? readerPath({ source: "thaqalayn", bookId: nextChapter.bookId, page: 1 }) : regularHref;
-}
-
-function findNextChapter(toc: TocItem[], currentBookId: string) {
-  const chapters = toc.filter((item) => item.level !== 0 && item.bookId);
-  const currentIndex = chapters.findIndex((item) => item.bookId === currentBookId);
-  return currentIndex >= 0 ? chapters[currentIndex + 1] : undefined;
-}
-
 function isCurrentTocItem(item: TocItem, bookId: string, pageNo: number) {
   if (item.source === "thaqalayn") return item.bookId === bookId;
   return item.bookId === bookId && item.page === pageNo;
 }
 
-function splitReaderText(text: string, english?: string) {
-  if (english?.trim()) return { arabic: text, english: english.trim() };
-  if (!/[A-Za-z]/.test(text)) return { arabic: text, english: undefined };
-
-  const newlineSplit = text.search(/\n+(?=[A-Za-z0-9])/);
-  if (newlineSplit > 0) {
-    const arabic = text.slice(0, newlineSplit).trim();
-    const latin = text.slice(newlineSplit).trim();
-    if (arabic && /[A-Za-z]/.test(latin)) return { arabic, english: latin };
-  }
-
-  const latinStart = text.search(/[A-Za-z]/);
-  if (latinStart > 0 && /[\u0600-\u06FF]/.test(text.slice(0, latinStart))) {
-    return { arabic: text.slice(0, latinStart).trim(), english: text.slice(latinStart).trim() };
-  }
-
-  return { arabic: text, english: undefined };
-}
-
 function TocSections({ items, parts, bookId, volume, pageNo, currentChapterName }: { items: TocItem[]; parts: string[]; bookId: string; volume?: string; pageNo: number; currentChapterName?: string }) {
-  const groups: Array<{ section: TocItem; chapters: TocItem[] }> = [];
-  let currentGroup: { section: TocItem; chapters: TocItem[] } | null = null;
-  for (const item of items) {
-    if (item.level === 0) {
-      currentGroup = { section: item, chapters: [] };
-      groups.push(currentGroup);
-    } else if (currentGroup) {
-      currentGroup.chapters.push(item);
-    }
-  }
+  const groups = groupTocSections(items);
   return (
     <>
       {groups.map((group, gi) => {

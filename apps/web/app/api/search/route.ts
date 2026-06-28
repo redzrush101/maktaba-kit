@@ -8,7 +8,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json(await client().search(q, {
     source: sourceParam(url),
-    limit: limitParam(url, 10),
+    limit: limitParam(url, 10, 200),
     page: positiveIntParam(url, "page", 1),
     bookId: url.searchParams.get("bookId") ?? undefined,
     volume: url.searchParams.get("volume") ?? undefined,

@@ -1,5 +1,23 @@
 import type { SourceName } from "./models";
 
+export function normalizeSource(value: string | undefined): SourceName {
+  return value === "eshia" || value === "thaqalayn" ? value : "ablibrary";
+}
+
+export function readerRefFromParts(source: string, parts: string[]): ParsedRef {
+  const sourceName = normalizeSource(source);
+  const bookId = sourceName === "thaqalayn" ? parts.slice(0, -1).join("/") : parts[0];
+  const volume = sourceName === "eshia" ? parts[1] ?? "1" : undefined;
+  const page = Number(sourceName === "eshia" ? parts[2] ?? "1" : parts.at(-1) ?? "1");
+  return { source: sourceName, bookId, volume, page };
+}
+
+export function refString(ref: ParsedRef) {
+  if (ref.source === "eshia") return `eshia:${ref.bookId}/${ref.volume ?? "1"}/${ref.page ?? 1}`;
+  if (ref.source === "thaqalayn") return `thaqalayn:${ref.bookId}/${ref.page ?? 1}`;
+  return `ablibrary:${ref.bookId}/${ref.page ?? 1}`;
+}
+
 export type ParsedRef = { source: SourceName; bookId: string; volume?: string; page?: number };
 export type ReadPathInput = ParsedRef;
 export type BookPathInput = Pick<ParsedRef, "source" | "bookId" | "volume">;

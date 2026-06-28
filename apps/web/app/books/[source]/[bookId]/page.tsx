@@ -1,4 +1,4 @@
-import { readerPath } from "@maktaba-kit/core";
+import { groupTocSections, normalizeSource, readerPath, refString } from "@maktaba-kit/core";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
 import { SearchBox } from "@/components/SearchBox";
@@ -8,8 +8,8 @@ import Link from "next/link";
 export default async function BookPage({ params, searchParams }: { params: Promise<{ source: string; bookId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { source, bookId } = await params;
   const { volume = "1" } = await searchParams;
-  const sourceName = source === "eshia" ? "eshia" : source === "thaqalayn" ? "thaqalayn" : "ablibrary";
-  const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/1` : sourceName === "thaqalayn" ? `thaqalayn:${bookId}` : `ablibrary:${bookId}/1`;
+  const sourceName = normalizeSource(source);
+  const ref = refString({ source: sourceName, bookId, volume: sourceName === "eshia" ? volume : undefined, page: 1 });
   const [infoRes, tocRes] = await Promise.all([maktabaClient.info(ref), maktabaClient.toc(ref, 120)]);
   const book = infoRes.data[0];
   const volumes = (Array.isArray(book?.meta?.volumes) ? book.meta.volumes : []) as Array<{ label: string; value: string }>;
@@ -84,17 +84,7 @@ function BookTocAccordion({ items, volume }: { items: BookTocItem[]; volume: str
     );
   }
 
-  const groups: Array<{ section: BookTocItem; chapters: BookTocItem[] }> = [];
-  let currentGroup: (typeof groups)[number] | null = null;
-
-  for (const item of items) {
-    if (item.level === 0) {
-      currentGroup = { section: item, chapters: [] };
-      groups.push(currentGroup);
-    } else if (currentGroup) {
-      currentGroup.chapters.push(item);
-    }
-  }
+  const groups = groupTocSections(items);
 
   return (
     <div className="space-y-2">

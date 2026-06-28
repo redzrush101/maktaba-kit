@@ -18,11 +18,13 @@ export function positiveIntParam(url: URL, name: string, fallback: number) {
   return Number.isFinite(parsed) ? Math.max(1, parsed) : fallback;
 }
 
-export function limitParam(url: URL, fallback: number) {
+export function limitParam(url: URL, fallback: number, max?: number) {
   const raw = url.searchParams.get("limit") ?? String(fallback);
   if (raw === "all") return 0;
   const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed)) return fallback;
+  const positive = Math.max(1, parsed);
+  return max ? Math.min(max, positive) : positive;
 }
 
 export function client() {
@@ -33,7 +35,7 @@ export function badRequest(message: string) {
   const body: ApiResponse<[]> = {
     ok: false,
     data: [],
-    errors: [{ source: "ablibrary", code: "BadRequest", message }],
+    errors: [{ source: "maktaba", code: "BadRequest", message }],
   };
   return NextResponse.json(body, { status: 400 });
 }

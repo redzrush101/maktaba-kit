@@ -64,7 +64,7 @@ export type Category = {
 };
 
 export type SourceError = {
-  source: SourceName;
+  source: SourceName | "maktaba";
   code: string;
   message: string;
 };

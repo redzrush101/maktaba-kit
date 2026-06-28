@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   const categoryId = url.searchParams.get("categoryId")?.trim();
   if (categoryId) {
     return NextResponse.json(await client().categoryBooks(categoryId, {
-      limit: limitParam(url, 50),
+      limit: limitParam(url, 50, 200),
       page: positiveIntParam(url, "page", 1),
     }));
   }

@@ -6,6 +6,7 @@ export class AblibrarySource {
   name = "ablibrary" as const;
   base = "https://grpc.ablibrary.net";
   private headers: Record<string, string>;
+  private volumeCache = new Map<string, Array<{ label: string; value: string }>>();
 
   constructor(private http: HttpClient, lang = "ar") {
     this.headers = { "x-language-id": lang };
@@ -20,10 +21,11 @@ export class AblibrarySource {
   }
 
   async books(query: string, limit = 10, page = 1, fuzzy = true): Promise<Book[]> {
-    const payload: AnyObj = { query, page, perPage: limit };
+    const effectiveLimit = sourceLimit(limit);
+    const payload: AnyObj = { query, page, perPage: effectiveLimit };
     if (fuzzy) payload.fuzzy = { enabled: true, fields: ["FIELD_TITLE", "FIELD_CONTRIBUTOR_NAME", "FIELD_CATEGORY_NAME"] };
     const data = await this.post("ablibrary.services.book_service.BookService", "List", payload);
-    return arrayOfObjects(data.books).slice(0, limit).map((b) => this.book(b));
+    return take(arrayOfObjects(data.books), limit).map((b) => this.book(b));
   }
 
   async categories(): Promise<Category[]> {
@@ -37,8 +39,8 @@ export class AblibrarySource {
   }
 
   async categoryBooks(categoryId: string, limit = 50, page = 1): Promise<Book[]> {
-    const data = await this.post("ablibrary.services.book_service.BookService", "List", { page, perPage: limit, categories: [categoryId] });
-    return arrayOfObjects(data.books).slice(0, limit).map((b) => this.book(b));
+    const data = await this.post("ablibrary.services.book_service.BookService", "List", { page, perPage: sourceLimit(limit), categories: [categoryId] });
+    return take(arrayOfObjects(data.books), limit).map((b) => this.book(b));
   }
 
   async search(query: string, limit = 10, page = 1, bookId?: string): Promise<SearchResult[]> {
@@ -46,7 +48,7 @@ export class AblibrarySource {
       try {
         const data = await this.post("ablibrary.services.search_service.SearchService", "SearchInBook", { bookId, query, scope: ["SCOPE_TEXT"] });
         const pages = arrayOfObjects(asObj(data.abx)?.pages ?? asObj(data.ocr)?.pages);
-        return pages.slice(0, limit).map((item) => {
+        return take(pages, limit).map((item) => {
           const p = asObj(item.page) ?? item;
           const pageNumber = asNumber(p.number);
           return { source: this.name, kind: "text", bookId, page: pageNumber, snippet: this.flattenPage(p).slice(0, 600), url: `https://v4.ablibrary.net/books/${bookId}${pageNumber ? `?page=${pageNumber}` : ""}` };
@@ -59,10 +61,10 @@ export class AblibrarySource {
   }
 
   private async searchGlobal(query: string, limit = 10, page = 1, bookId?: string): Promise<SearchResult[]> {
-    const payload: AnyObj = { query, paginate: { page, perPage: limit } };
+    const payload: AnyObj = { query, paginate: { page, perPage: sourceLimit(limit) } };
     if (bookId) payload.books = [bookId];
     const data = await this.post("ablibrary.services.search_service.SearchService", "Search", payload);
-    return arrayOfObjects(data.results).slice(0, limit).map((item) => {
+    return take(arrayOfObjects(data.results), limit).map((item) => {
       const book = asObj(item.book) ?? {};
       const result = asObj(item.result) ?? {};
       const p = asObj(asObj(result.abx)?.page) ?? asObj(asObj(result.ocr)?.page) ?? {};
@@ -121,16 +123,21 @@ export class AblibrarySource {
 
   private async volumesFor(book: Book): Promise<Array<{ label: string; value: string }>> {
     if (!book.title) return [];
+    const title = normalizeTitle(book.title);
+    const author = normalizeText(book.author ?? "");
+    const cacheKey = `${title}:${author}`;
+    const cached = this.volumeCache.get(cacheKey);
+    if (cached) return cached;
     try {
       const data = await this.post("ablibrary.services.book_service.BookService", "List", { query: book.title, page: 1, perPage: 100 });
-      const title = normalizeTitle(book.title);
-      const author = normalizeText(book.author ?? "");
-      return arrayOfObjects(data.books)
+      const volumes = arrayOfObjects(data.books)
         .map((item) => this.book(item))
         .filter((item) => normalizeTitle(item.title ?? "") === title)
         .filter((item) => !author || normalizeText(item.author ?? "") === author)
         .sort((a, b) => volumeNumber(a.volume) - volumeNumber(b.volume))
         .map((item) => ({ label: item.volume ?? item.title ?? item.id, value: item.id }));
+      this.volumeCache.set(cacheKey, volumes);
+      return volumes;
     } catch {
       return [];
     }
@@ -186,6 +193,14 @@ export class AblibrarySource {
       footnotes: parseFootnotes(footnoteTexts.join("\n")),
     };
   }
+}
+
+function sourceLimit(limit: number, cap = 200) {
+  return limit <= 0 ? cap : limit;
+}
+
+function take<T>(items: T[], limit: number) {
+  return limit <= 0 ? items : items.slice(0, limit);
 }
 
 function normalizeText(value: string) {

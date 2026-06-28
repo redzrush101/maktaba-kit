@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { Book, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
-import { asArray, asNumber, asObj, asString, cleanWhitespace, type AnyObj } from "../source-utils";
+import { arrayOfObjects, asArray, asNumber, asObj, asString, cleanWhitespace, splitArabicEnglish, type AnyObj } from "../source-utils";
 
 const typesenseKey = "AmswDdjQNKm0xVNBLhUpkgjLj4JnNNbh";
 const arabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
@@ -24,7 +24,7 @@ export class ThaqalaynSource {
 
   async books(query: string, limit = 10, page = 1): Promise<Book[]> {
     const queries = bookQueries(query);
-    const results = await Promise.all(queries.map((q) => this.multiSearch([{ collection: "books", q, query_by: "nameEn,nameAr,authorName,blurbEn", per_page: limit, page }])));
+    const results = await Promise.all(queries.map((q) => this.multiSearch([{ collection: "books", q, query_by: "nameEn,nameAr,authorName,blurbEn", per_page: sourceLimit(limit), page }])));
     const seen = new Set<string>();
     return results.flatMap((result) => arrayHits(result)).flatMap((hit) => {
       const doc = asObj(hit.document) ?? {};
@@ -46,7 +46,7 @@ export class ThaqalaynSource {
     const script = arabic.test(query) ? "arabic" : "latin";
     const exact = query.trim().startsWith('"') && query.trim().endsWith('"');
     const q = exact ? query : query.trim();
-    const search: AnyObj = { collection: "hadiths", q, preset: `hadiths-${exact ? "exact" : "full"}-${script}`, per_page: limit || 10, page };
+    const search: AnyObj = { collection: "hadiths", q, preset: `hadiths-${exact ? "exact" : "full"}-${script}`, per_page: sourceLimit(limit), page };
     const filter = this.bookFilter(bookId);
     if (filter) search.filter_by = filter;
     const result = await this.multiSearch([search]);
@@ -118,7 +118,6 @@ export class ThaqalaynSource {
     const html = await this.getText(`${this.base}/book/${rootBookId}`);
     const $ = cheerio.load(html);
 
-    // Extract volume from the page
     // Extract volume from the page (e.g., "(Vol. 2)" or "Vol. 2")
     let volume: string | undefined;
     const volSpan = html.match(/\(Vol\.\s*(\d+)\)/);
@@ -154,24 +153,8 @@ export class ThaqalaynSource {
         if (next.is('ol') || next.is('ul')) {
           next.find('a[href^="/chapter/"]').each((_, a) => {
             if (items.length >= limit) return;
-            const href = $(a).attr("href") ?? "";
-            const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
-            if (!m) return;
-            const raw = cleanWhitespace($(a).text());
-            const title = raw
-              .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
-              .trim();
-            if (title) {
-              items.push({
-                source: this.name,
-                bookId: `${m[1]}/${m[2]}/${m[3]}`,
-                title,
-                page: undefined,
-                volume,
-                level: 1,
-                url: `${this.base}${href}`,
-              });
-            }
+            const item = this.tocItemFromChapterLink($, a, volume);
+            if (item) items.push(item);
           });
         }
         next = next.next();
@@ -182,24 +165,8 @@ export class ThaqalaynSource {
     if (!items.length) {
       $('a[href^="/chapter/"]').each((_, a) => {
         if (items.length >= limit) return;
-        const href = $(a).attr("href") ?? "";
-        const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
-        if (!m) return;
-        const raw = cleanWhitespace($(a).text());
-        const title = raw
-          .replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "")
-          .trim();
-        if (title) {
-          items.push({
-            source: this.name,
-            bookId: `${m[1]}/${m[2]}/${m[3]}`,
-            title,
-            page: undefined,
-            volume,
-            level: 1,
-            url: `${this.base}${href}`,
-          });
-        }
+        const item = this.tocItemFromChapterLink($, a, volume);
+        if (item) items.push(item);
       });
     }
 
@@ -208,6 +175,23 @@ export class ThaqalaynSource {
 
   async suggest(query: string, limit = 10) {
     return this.books(query, limit);
+  }
+
+  private tocItemFromChapterLink($: cheerio.CheerioAPI, a: Parameters<cheerio.CheerioAPI>[0], volume?: string): TocItem | undefined {
+    const href = $(a).attr("href") ?? "";
+    const m = href.match(/\/chapter\/(\d+)\/(\d+)\/(\d+)/);
+    if (!m) return undefined;
+    const title = cleanChapterTitle($(a).text());
+    if (!title) return undefined;
+    return {
+      source: this.name,
+      bookId: `${m[1]}/${m[2]}/${m[3]}`,
+      title,
+      page: undefined,
+      volume,
+      level: 1,
+      url: `${this.base}${href}`,
+    };
   }
 
   private async getText(url: string) {
@@ -407,24 +391,16 @@ function parseGradingCitation(citation: string): { grade: string; grader: string
   };
 }
 
-function splitArabicEnglish(text: string): { arabic: string; english?: string } {
-  // The JSON-LD text combines Arabic and English separated by newlines.
-  // Look for the first newline followed by Latin text (English translation).
-  const idx = text.search(/\n+(?=[A-Za-z])/);
-  if (idx > 0) {
-    const arabic = text.slice(0, idx).trim();
-    const english = text.slice(idx).trim();
-    if (english && /[A-Za-z]/.test(english)) return { arabic, english };
-  }
-  return { arabic: text.trim() };
+function cleanChapterTitle(raw: string) {
+  return cleanWhitespace(raw).replace(/\d+\s*(Aḥadīth|Ḥadīth|Hadith).*$/i, "").trim();
+}
+
+function sourceLimit(limit: number, cap = 250) {
+  return limit <= 0 ? cap : limit;
 }
 
 function arrayHits(result: AnyObj) {
   return arrayOfObjects(result.hits);
-}
-
-function arrayOfObjects(value: unknown): AnyObj[] {
-  return asArray(value).flatMap((item) => asObj(item) ? [asObj(item)] as AnyObj[] : []);
 }
 
 function ldJson($: cheerio.CheerioAPI): AnyObj[] {

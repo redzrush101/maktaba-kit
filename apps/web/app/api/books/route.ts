@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { badRequest, client, limitParam, requestUrl, sourceParam } from "../_shared";
+import { badRequest, client, limitParam, positiveIntParam, requestUrl, sourceParam } from "../_shared";
 
 export async function GET(req: Request) {
   const url = requestUrl(req);
@@ -8,6 +8,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json(await client().books(q, {
     source: sourceParam(url),
-    limit: limitParam(url, 10),
+    limit: limitParam(url, 10, 200),
+    page: positiveIntParam(url, "page", 1),
   }));
 }

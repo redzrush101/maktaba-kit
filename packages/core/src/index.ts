@@ -29,23 +29,23 @@ export class MaktabaClient {
   }
 
   private selected(source: SourceSelect = "all"): LibrarySource[] {
-    if (source === "all") return Object.values(this.sources);
-    return [this.sources[source]];
+    if (source === "all" || !this.sources[source as SourceName]) return Object.values(this.sources);
+    return [this.sources[source as SourceName]];
   }
 
   private async many<T>(source: SourceSelect, fn: (s: LibrarySource) => Promise<T[] | T>): Promise<{ data: T[]; errors: SourceError[] }> {
-    const data: T[] = [];
-    const errors: SourceError[] = [];
-    await Promise.all(this.selected(source).map(async (s) => {
+    const results = await Promise.all(this.selected(source).map(async (s) => {
       try {
         const res = await fn(s);
-        if (Array.isArray(res)) data.push(...res);
-        else data.push(res);
+        return { data: Array.isArray(res) ? res : [res], errors: [] as SourceError[] };
       } catch (e) {
-        errors.push(toSourceError(s.name, e));
+        return { data: [] as T[], errors: [toSourceError(s.name, e)] };
       }
     }));
-    return { data, errors };
+    return {
+      data: results.flatMap((result) => result.data),
+      errors: results.flatMap((result) => result.errors),
+    };
   }
 
   async search(query: string, options: SearchOptions = {}): Promise<ApiResponse<SearchResult[]>> {
