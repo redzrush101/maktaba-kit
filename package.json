@@ -1,15 +1,11 @@
 {
   "name": "maktaba-kit",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "npm --workspace apps/web run dev",
-    "build": "npm --workspace apps/web run build",
-    "test": "npm --workspace apps/web run test",
-    "test:e2e": "npm --workspace apps/web run test:e2e",
+    "dev": "pnpm --filter maktaba-web dev",
+    "build": "pnpm --filter maktaba-web build",
+    "test": "pnpm --filter maktaba-web test",
+    "test:e2e": "pnpm --filter maktaba-web test:e2e",
     "lint": "eslint apps/web packages/core --max-warnings=0"
   },
   "devDependencies": {
