@@ -1,4 +1,5 @@
-import { createMaktabaClient, type SourceSelect } from "@maktaba-kit/core";
+import { type SourceSelect } from "@maktaba-kit/core";
+import { maktabaClient } from "@/lib/maktaba-client";
 import { BookCard } from "@/components/BookCard";
 import { Header } from "@/components/Header";
 import { SearchBox } from "@/components/SearchBox";
@@ -7,7 +8,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const q = params.q ?? "";
   const source = (params.source ?? "all") as SourceSelect;
-  const res = q ? await createMaktabaClient({ timeoutMs: 18_000 }).books(q, { source, limit: 16 }) : { data: [], errors: [], ok: true };
+  const res = q ? await maktabaClient.books(q, { source, limit: 16 }) : { data: [], errors: [], ok: true };
   return (
     <main>
       <Header />

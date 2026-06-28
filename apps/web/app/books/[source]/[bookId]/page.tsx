@@ -1,4 +1,5 @@
-import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
+import { readerPath } from "@maktaba-kit/core";
+import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
 import { SearchBox } from "@/components/SearchBox";
 import { SourceBadge } from "@/components/SourceBadge";
@@ -9,11 +10,13 @@ export default async function BookPage({ params, searchParams }: { params: Promi
   const { volume = "1" } = await searchParams;
   const sourceName = source === "eshia" ? "eshia" : source === "thaqalayn" ? "thaqalayn" : "ablibrary";
   const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/1` : sourceName === "thaqalayn" ? `thaqalayn:${bookId}` : `ablibrary:${bookId}/1`;
-  const client = createMaktabaClient({ timeoutMs: 18_000 });
-  const [infoRes, tocRes] = await Promise.all([client.info(ref), client.toc(ref, 120)]);
+  const [infoRes, tocRes] = await Promise.all([maktabaClient.info(ref), maktabaClient.toc(ref, 120)]);
   const book = infoRes.data[0];
   const volumes = (Array.isArray(book?.meta?.volumes) ? book.meta.volumes : []) as Array<{ label: string; value: string }>;
-  const categories = (Array.isArray(book?.meta?.categories) ? book.meta.categories : []) as Array<{ name?: string }>;
+  const categories = (Array.isArray(book?.meta?.categories) ? book.meta.categories : []) as Array<{ id?: string; name?: string }>;
+  const blurb = typeof book?.meta?.blurbEn === "string" ? book.meta.blurbEn : undefined;
+  const translator = typeof book?.meta?.translator === "string" ? book.meta.translator : undefined;
+  const authorLink = typeof book?.meta?.authorLink === "string" ? book.meta.authorLink : undefined;
   const firstToc = tocRes.data[0];
   const readHref = firstToc ? readerPath({ source: firstToc.source, bookId: firstToc.bookId, volume: firstToc.volume, page: firstToc.page ?? 1 }) : readerPath({ source: sourceName, bookId, volume, page: 1 });
 
@@ -27,12 +30,14 @@ export default async function BookPage({ params, searchParams }: { params: Promi
             <span className="font-sans text-xs text-muted" dir="ltr">{ref}</span>
           </div>
           <h1 className="font-arabic text-3xl font-bold leading-tight" dir="rtl">{book?.title || "Book"}</h1>
-          {book?.author && <p className="mt-2 font-arabic text-lg text-muted" dir="rtl">{book.author}</p>}
+          {book?.author && <p className="mt-2 font-arabic text-lg text-muted" dir="rtl">{authorLink ? <a className="underline decoration-line underline-offset-4" href={authorLink} target="_blank">{book.author}</a> : book.author}</p>}
+          {translator && <p className="mt-1 font-sans text-sm text-muted">Translated by {translator}</p>}
+          {blurb && <p className="mt-4 max-w-3xl whitespace-pre-line font-sans text-sm leading-7 text-ink/80" dir="ltr">{blurb}</p>}
           <div className="mt-4 flex flex-wrap gap-2 font-sans text-xs text-muted" dir="ltr">
             {book?.pages && <span className="rounded-full border border-line px-3 py-1">{book.pages} pages</span>}
             {book?.volume && <span className="rounded-full border border-line px-3 py-1">volume {book.volume}</span>}
           </div>
-          {!!categories.length && <div className="mt-4 flex flex-wrap gap-2 font-arabic text-sm text-muted" dir="rtl">{categories.map((category, i) => category.name ? <span key={`${category.name}-${i}`} className="rounded-full border border-line px-3 py-1">{category.name}</span> : null)}</div>}
+          {!!categories.length && <div className="mt-4 flex flex-wrap gap-2 font-arabic text-sm text-muted" dir="rtl">{categories.map((category, i) => category.name ? (category.id ? <Link key={`${category.name}-${i}`} href={`/categories/${category.id}`} className="rounded-full border border-line px-3 py-1 hover:text-ink">{category.name}</Link> : <span key={`${category.name}-${i}`} className="rounded-full border border-line px-3 py-1">{category.name}</span>) : null)}</div>}
           <div className="mt-5 flex flex-wrap gap-2 font-sans text-sm" dir="ltr">
             <Link href={readHref} className="rounded-full bg-ink px-4 py-2 font-semibold text-paper">Read</Link>
             {book?.url && <a href={book.url} target="_blank" className="rounded-full border border-line px-4 py-2 text-ink">Original</a>}

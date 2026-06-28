@@ -1,8 +1,8 @@
-import { MemoryCache, cacheKey } from "./cache";
+import { MemoryCache, cacheKey, type CacheStore } from "./cache";
 
 export class HttpClient {
   constructor(
-    private cache = new MemoryCache(),
+    private cache: CacheStore = new MemoryCache(),
     private timeoutMs = 20_000,
     private userAgent = "Mozilla/5.0 MaktabaKit/0.1",
   ) {}
@@ -10,7 +10,7 @@ export class HttpClient {
   async request(method: string, url: string, init: RequestInit = {}) {
     const headers = { "User-Agent": this.userAgent, ...(init.headers as Record<string, string> | undefined) };
     const key = cacheKey(method, url, init.body, headers);
-    const cached = this.cache.get<{ status: number; text: string; url: string; headers: Record<string, string> }>(key);
+    const cached = await this.cache.get<{ status: number; text: string; url: string; headers: Record<string, string> }>(key);
     if (cached) return cached;
 
     const controller = new AbortController();
@@ -19,7 +19,7 @@ export class HttpClient {
       const res = await fetch(url, { ...init, method, headers, signal: controller.signal });
       const text = await res.text();
       const value = { status: res.status, text, url: res.url, headers: Object.fromEntries(res.headers.entries()) };
-      if (res.status < 400) this.cache.set(key, value);
+      if (res.status < 400) await this.cache.set(key, value);
       return value;
     } finally {
       clearTimeout(timer);

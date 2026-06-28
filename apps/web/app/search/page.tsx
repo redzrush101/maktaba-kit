@@ -1,4 +1,5 @@
-import { createMaktabaClient, type Book, type SearchResult, type SourceSelect } from "@maktaba-kit/core";
+import { type Book, type SearchResult, type SourceSelect } from "@maktaba-kit/core";
+import { maktabaClient } from "@/lib/maktaba-client";
 import Link from "next/link";
 import { BookCard } from "@/components/BookCard";
 import { Header } from "@/components/Header";
@@ -22,7 +23,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const strictVolume = params.strictVolume === "1";
   const exact = params.exact === "1";
   const matchAll = params.matchAll === "1";
-  const client = createMaktabaClient({ timeoutMs: 18_000 });
+  const client = maktabaClient;
 
   const shouldSearchText = q && (mode === "all" || mode === "text");
   const shouldSearchBooks = q && !bookId && (mode === "all" || mode === "books");

@@ -1,4 +1,5 @@
-import { createMaktabaClient, type ApiResponse, type SourceSelect } from "@maktaba-kit/core";
+import { type ApiResponse, type SourceSelect } from "@maktaba-kit/core";
+import { maktabaClient } from "@/lib/maktaba-client";
 import { NextResponse } from "next/server";
 
 const sources = new Set<SourceSelect>(["all", "ablibrary", "eshia", "thaqalayn"]);
@@ -25,7 +26,7 @@ export function limitParam(url: URL, fallback: number) {
 }
 
 export function client() {
-  return createMaktabaClient({ timeoutMs: 18_000 });
+  return maktabaClient;
 }
 
 export function badRequest(message: string) {

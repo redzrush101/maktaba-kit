@@ -1,6 +1,6 @@
-import { MemoryCache } from "./cache";
+import { MemoryCache, type CacheStore } from "./cache";
 import { HttpClient } from "./http";
-import type { ApiResponse, Book, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
+import type { ApiResponse, Book, Category, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
 import { parseRef } from "./refs";
 import { normalizeArabic, postProcessBooks, postProcessSearchResults } from "./search-utils";
 import { AblibrarySource } from "./sources/ablibrary";
@@ -13,13 +13,13 @@ export * from "./refs";
 export * from "./search-utils";
 export * from "./source-utils";
 
-export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean; maxCacheEntries?: number };
+export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean; maxCacheEntries?: number; cacheStore?: CacheStore };
 
 export class MaktabaClient {
   private sources: Record<SourceName, LibrarySource>;
 
   constructor(options: MaktabaClientOptions = {}) {
-    const cache = new MemoryCache(options.ttlMs ?? 86_400_000, options.cache ?? true, options.maxCacheEntries ?? 500);
+    const cache = options.cacheStore ?? new MemoryCache(options.ttlMs ?? 86_400_000, options.cache ?? true, options.maxCacheEntries ?? 500);
     const http = new HttpClient(cache, options.timeoutMs ?? 20_000, options.userAgent ?? "Mozilla/5.0 MaktabaKit/0.1");
     this.sources = {
       ablibrary: new AblibrarySource(http),
@@ -108,6 +108,24 @@ export class MaktabaClient {
       return { ok: true, data, errors: [] };
     } catch (e) {
       return { ok: false, data: [], errors: [toSourceError(r.source, e)] };
+    }
+  }
+
+  async categories(): Promise<ApiResponse<Category[]>> {
+    try {
+      const source = this.sources.ablibrary as AblibrarySource;
+      return { ok: true, data: await source.categories(), errors: [] };
+    } catch (e) {
+      return { ok: false, data: [], errors: [toSourceError("ablibrary", e)] };
+    }
+  }
+
+  async categoryBooks(categoryId: string, options: SearchOptions = {}): Promise<ApiResponse<Book[]>> {
+    try {
+      const source = this.sources.ablibrary as AblibrarySource;
+      return { ok: true, data: await source.categoryBooks(categoryId, options.limit ?? 50, options.page ?? 1), errors: [], query: categoryId };
+    } catch (e) {
+      return { ok: false, data: [], errors: [toSourceError("ablibrary", e)], query: categoryId };
     }
   }
 

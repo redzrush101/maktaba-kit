@@ -1,4 +1,4 @@
-import { BookOpen, Search } from "lucide-react";
+import { BookOpen, Search, Tags } from "lucide-react";
 import Link from "next/link";
 
 export function Header({ hideSearch = false }: { hideSearch?: boolean }) {
@@ -12,6 +12,10 @@ export function Header({ hideSearch = false }: { hideSearch?: boolean }) {
             <span className="hidden sm:inline">Search</span>
           </Link>
         )}
+        <Link aria-label="Categories" className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full hover:bg-ink/5 hover:text-ink sm:min-h-0 sm:min-w-0 sm:rounded-none" href="/categories">
+          <Tags size={18} className="sm:hidden" />
+          <span className="hidden sm:inline">Categories</span>
+        </Link>
         <Link aria-label="Library" className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-full hover:bg-ink/5 hover:text-ink sm:min-h-0 sm:min-w-0 sm:rounded-none" href="/library">
           <BookOpen size={18} className="sm:hidden" />
           <span className="hidden sm:inline">Library</span>

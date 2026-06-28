@@ -56,6 +56,13 @@ export type TocItem = {
   url?: string;
 };
 
+export type Category = {
+  source: SourceName;
+  id: string;
+  name: string;
+  weight?: number;
+};
+
 export type SourceError = {
   source: SourceName;
   code: string;

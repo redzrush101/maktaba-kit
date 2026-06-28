@@ -1,4 +1,4 @@
-import type { Book, Page, SearchResult, TocItem } from "../models";
+import type { Book, Category, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
 import { arrayOfObjects, asArray, asNumber, asObj, asString, type AnyObj } from "../source-utils";
 
@@ -23,6 +23,21 @@ export class AblibrarySource {
     const payload: AnyObj = { query, page, perPage: limit };
     if (fuzzy) payload.fuzzy = { enabled: true, fields: ["FIELD_TITLE", "FIELD_CONTRIBUTOR_NAME", "FIELD_CATEGORY_NAME"] };
     const data = await this.post("ablibrary.services.book_service.BookService", "List", payload);
+    return arrayOfObjects(data.books).slice(0, limit).map((b) => this.book(b));
+  }
+
+  async categories(): Promise<Category[]> {
+    const data = await this.post("ablibrary.services.category_service.CategoryService", "List", {});
+    return arrayOfObjects(data.categories).map((category) => ({
+      source: this.name,
+      id: asString(category.id) ?? "",
+      name: asString(category.name) ?? "",
+      weight: asNumber(category.weight),
+    })).filter((category) => category.id && category.name);
+  }
+
+  async categoryBooks(categoryId: string, limit = 50, page = 1): Promise<Book[]> {
+    const data = await this.post("ablibrary.services.book_service.BookService", "List", { page, perPage: limit, categories: [categoryId] });
     return arrayOfObjects(data.books).slice(0, limit).map((b) => this.book(b));
   }
 

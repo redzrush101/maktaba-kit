@@ -1,4 +1,5 @@
-import { createMaktabaClient, readerPath } from "@maktaba-kit/core";
+import { readerPath } from "@maktaba-kit/core";
+import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
 import { KeyboardShortcuts } from "@/components/KeyboardShortcuts";
 import { LibraryActions } from "@/components/LibraryActions";
@@ -19,8 +20,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const bookId = sourceName === "thaqalayn" ? parts.slice(0, -1).join("/") : parts[0];
   const volume = sourceName === "eshia" ? parts[1] ?? "1" : undefined;
   const ref = sourceName === "eshia" ? `eshia:${bookId}/${volume}/${parts[2] ?? "1"}` : sourceName === "thaqalayn" ? `thaqalayn:${bookId}/${parts.at(-1) ?? "1"}` : `ablibrary:${bookId}/${parts[1] ?? "1"}`;
-  const client = createMaktabaClient({ timeoutMs: 18_000 });
-  const [res, infoRes, tocRes] = await Promise.all([client.read(ref), client.info(ref), client.toc(ref, 500)]);
+  const [res, infoRes, tocRes] = await Promise.all([maktabaClient.read(ref), maktabaClient.info(ref), maktabaClient.toc(ref, 500)]);
   const page = res.data[0];
   const info = infoRes.data[0];
   const pageNo = page?.page ?? Number(parts.at(-1) ?? 1);

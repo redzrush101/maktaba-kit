@@ -78,13 +78,32 @@ export class ThaqalaynSource {
   }
 
   async info(bookId: string): Promise<Book> {
-    const books = await this.books(bookId, 5);
-    const exact = books.find((book) => book.id === bookId);
-    if (exact) return exact;
     const html = await this.getText(`${this.base}/book/${bookId}`);
     const $ = cheerio.load(html);
     const title = cleanWhitespace($("h1").first().text()) || cleanWhitespace($("title").text().split("|")[0] ?? "");
-    return { source: this.name, id: bookId, title, url: `${this.base}/book/${bookId}` };
+    const subtitle = cleanWhitespace($("h2").first().text());
+    const authorLink = $('a[href*="wikishia"]').first();
+    const author = cleanWhitespace(authorLink.text());
+    const blurb = thaqalaynBlurb($);
+    const meta = parseBookPayload(html);
+    return {
+      source: this.name,
+      id: bookId,
+      title: subtitle || title,
+      author: author || asString(asObj(meta.author)?.name_en),
+      volume: asString(meta.currentVolume) ?? bookId,
+      pages: asNumber(meta.volumeCount),
+      url: `${this.base}/book/${bookId}`,
+      meta: {
+        title,
+        englishName: asString(meta.name_en_tl),
+        blurbEn: blurb || asString(meta.blurb_en),
+        authorLink: authorLink.attr("href") || asString(asObj(meta.author)?.link),
+        authorDeathDate: asString(asObj(meta.author)?.death_date),
+        translator: asString(asObj(meta.translator)?.name_en),
+        volumes: arrayOfObjects(meta.volumes).map((v) => ({ label: `Vol. ${asString(v.number) ?? asString(v.url_pointer) ?? ""}`.trim(), value: asString(v.url_pointer) ?? asString(v.number) ?? "" })).filter((v) => v.value),
+      },
+    };
   }
 
   async toc(bookId: string, limit = 500): Promise<TocItem[]> {
@@ -291,6 +310,32 @@ export class ThaqalaynSource {
       meta: { chapterName: asString(asObj(data.isPartOf)?.name), textEn: english, gradings },
     };
   }
+}
+
+function thaqalaynBlurb($: cheerio.CheerioAPI) {
+  let best = "";
+  $("div").each((_, div) => {
+    const text = cleanWhitespace($(div).text());
+    if (text.length > 250 && text.length < 5_000 && /compiled|comprises|literature/i.test(text)) best = text;
+  });
+  return best ? best.slice(0, 2_500) : undefined;
+}
+
+function parseBookPayload(html: string): AnyObj {
+  const decoded = html.replaceAll('\\"', '"').replaceAll('\\u0026', '&');
+  const out: AnyObj = {};
+  const get = (key: string) => decoded.match(new RegExp(`"${key}":("[^"]*"|\\d+|null)`))?.[1];
+  const clean = (value: string | undefined) => value && value !== "null" ? value.replace(/^"|"$/g, "") : undefined;
+  out.name_en_tl = clean(get("name_en_tl"));
+  out.currentVolume = clean(get("currentVolume"));
+  out.volumeCount = asNumber(clean(get("volumeCount")));
+  const author = decoded.match(/"author":\{"name_en":"([^"]*)","link":("[^"]*"|null),"death_date":("[^"]*"|null)/);
+  if (author) out.author = { name_en: author[1], link: clean(author[2]), death_date: clean(author[3]) };
+  const translator = decoded.match(/"translator":\{"name_en":("[^"]*"|null),"link":("[^"]*"|null)/);
+  if (translator) out.translator = { name_en: clean(translator[1]), link: clean(translator[2]) };
+  const volumes = decoded.match(/"volumes":\[([\s\S]*?)\],"author":/);
+  if (volumes) out.volumes = [...volumes[1].matchAll(/"number":(\d+),"url_pointer":"([^"]+)"/g)].map((m) => ({ number: m[1], url_pointer: m[2] }));
+  return out;
 }
 
 function bookQueries(query: string) {
