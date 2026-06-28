@@ -27,12 +27,6 @@ const hadithBooks = [
   { id: "26", title: "Ṣifāt al-Shīʿa", subtitle: "Attributes of the Shia", author: "Shaykh Muḥammad b. ʿAlī al-Ṣaduq" },
 ];
 
-const tabs = [
-  ["Hadith", "/hadiths", true],
-  ["Quran", "/search?source=thaqalayn&q=quran", false],
-  ["Dua", "/search?source=thaqalayn&q=dua", false],
-] as const;
-
 export default function HadithsPage() {
   const featured = hadithBooks.filter((book) => book.featured);
 
@@ -47,11 +41,6 @@ export default function HadithsPage() {
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full border border-accent/30" />
             <div className="relative flex flex-wrap items-center justify-between gap-3">
               <p className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 font-sans text-xs font-semibold tracking-[0.18em] text-accent">THAQALAYN HADITH</p>
-              <nav className="flex rounded-full border border-line bg-paper/65 p-1 font-sans text-sm" aria-label="Thaqalayn library sections">
-                {tabs.map(([label, href, active]) => (
-                  <Link key={label} href={href} className={`rounded-full px-3 py-1.5 transition ${active ? "bg-ink text-paper" : "text-muted hover:text-ink"}`}>{label}</Link>
-                ))}
-              </nav>
             </div>
 
             <div className="relative mt-12 max-w-2xl">

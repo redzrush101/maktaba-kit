@@ -57,19 +57,25 @@ export class ThaqalaynSource {
     const page = pages[0] ?? 1;
     const parts = bookId.split("/").filter(Boolean);
     if (parts.length >= 3) {
-      const doc = await this.hadithByParts(parts[0], parts[1], parts[2], page);
+      let doc = await this.hadithByParts(parts[0], parts[1], parts[2], page);
+      if (!doc && page === 1) {
+        const firstHadith = await this.firstHadithNumberInChapter(parts[0], parts[1], parts[2]);
+        if (firstHadith && firstHadith !== page) doc = await this.hadithByParts(parts[0], parts[1], parts[2], firstHadith);
+      }
       if (doc) {
-        const pg = this.pageFromDoc(doc, bookId, page);
+        const resolvedPage = asNumber(doc.number) ?? page;
+        const pg = this.pageFromDoc(doc, bookId, resolvedPage);
         // Enrich gradings with reference book names from the HTML page
         if (asArray(doc.grades).filter(Boolean).length) {
-          const htmlPage = await this.pageFromHtml(parts[0], parts[1], parts[2], page).catch(() => undefined);
+          const htmlPage = await this.pageFromHtml(parts[0], parts[1], parts[2], resolvedPage).catch(() => undefined);
           if (htmlPage?.meta?.gradings) {
             pg.meta = { ...pg.meta, gradings: htmlPage.meta.gradings };
           }
         }
         return [pg];
       }
-      return [await this.pageFromHtml(parts[0], parts[1], parts[2], page)];
+      const firstHadith = page === 1 ? await this.firstHadithNumberInChapter(parts[0], parts[1], parts[2]) : undefined;
+      return [await this.pageFromHtml(parts[0], parts[1], parts[2], firstHadith ?? page)];
     }
     const toc = await this.toc(bookId, 1);
     const first = toc[0];
@@ -215,6 +221,14 @@ export class ThaqalaynSource {
     const parts = bookId.split("/").filter(Boolean);
     if (parts.length >= 3) return `bookId:${parts[0]} && volumeNumber:${parts[0]} && bookSectionNumber:${parts[1]} && chapterNumber:${parts[2]}`;
     return `bookId:${bookId}`;
+  }
+
+  private async firstHadithNumberInChapter(volume: string, section: string, chapter: string) {
+    const html = await this.getText(`${this.base}/chapter/${volume}/${section}/${chapter}`);
+    const $ = cheerio.load(html);
+    const href = $('a[href^="/hadith/"]').first().attr("href") ?? "";
+    const match = href.match(/\/hadith\/\d+\/\d+\/\d+\/(\d+)/);
+    return match ? Number(match[1]) : undefined;
   }
 
   private async hadithByParts(volume: string, section: string, chapter: string, number: number) {
