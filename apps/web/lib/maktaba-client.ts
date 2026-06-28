@@ -3,19 +3,6 @@ import { createMaktabaClient, MemoryCache, type CacheStore } from "@maktaba-kit/
 const ttlMs = Number(process.env.MAKTABA_CACHE_TTL_MS ?? 86_400_000);
 const localCache = new MemoryCache(ttlMs, true, Number(process.env.MAKTABA_MEMORY_CACHE_ENTRIES ?? 1_000));
 
-export const maktabaClient = createMaktabaClient({
-  timeoutMs: 18_000,
-  ttlMs,
-  cacheStore: createCacheStore(),
-});
-
-function createCacheStore(): CacheStore {
-  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return localCache;
-  return new UpstashRestCache(url, token, localCache, ttlMs);
-}
-
 class UpstashRestCache implements CacheStore {
   constructor(
     private url: string,
@@ -62,3 +49,16 @@ class UpstashRestCache implements CacheStore {
     return data.result as T;
   }
 }
+
+function createCacheStore(): CacheStore {
+  const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return localCache;
+  return new UpstashRestCache(url, token, localCache, ttlMs);
+}
+
+export const maktabaClient = createMaktabaClient({
+  timeoutMs: 18_000,
+  ttlMs,
+  cacheStore: createCacheStore(),
+});
