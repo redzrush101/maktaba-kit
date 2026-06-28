@@ -13,21 +13,10 @@ function createCacheStore(): CacheStore {
   const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return localCache;
-  return new UpstashBackedCache(url, token, localCache, ttlMs);
+  return new UpstashRestCache(url, token, localCache, ttlMs);
 }
 
-type RedisClient = {
-  get<T>(key: string): Promise<T | null>;
-  set(key: string, value: unknown, options: { ex: number }): Promise<unknown>;
-};
-
-type RedisModule = {
-  Redis: new (config: { url: string; token: string }) => RedisClient;
-};
-
-class UpstashBackedCache implements CacheStore {
-  private redis?: RedisClient;
-
+class UpstashRestCache implements CacheStore {
   constructor(
     private url: string,
     private token: string,
@@ -39,9 +28,11 @@ class UpstashBackedCache implements CacheStore {
     const memoryHit = this.memory.get<T>(key);
     if (memoryHit) return memoryHit;
     try {
-      const redisHit = await (await this.client()).get<T>(key);
-      if (redisHit) this.memory.set(key, redisHit, this.ttlMs);
-      return redisHit ?? undefined;
+      const result = await this.command<string | null>(["GET", key]);
+      if (!result) return undefined;
+      const parsed = JSON.parse(result) as T;
+      this.memory.set(key, parsed, this.ttlMs);
+      return parsed;
     } catch {
       return undefined;
     }
@@ -50,17 +41,24 @@ class UpstashBackedCache implements CacheStore {
   async set(key: string, value: unknown, ttlMs = this.ttlMs): Promise<void> {
     this.memory.set(key, value, ttlMs);
     try {
-      await (await this.client()).set(key, value, { ex: Math.max(1, Math.ceil(ttlMs / 1_000)) });
+      await this.command(["SET", key, JSON.stringify(value), "EX", String(Math.max(1, Math.ceil(ttlMs / 1_000)))]);
     } catch {
       // Redis/KV outages should not break library reads; memory cache remains active.
     }
   }
 
-  private async client() {
-    if (!this.redis) {
-      const { Redis } = await import("@upstash/redis") as RedisModule;
-      this.redis = new Redis({ url: this.url, token: this.token });
-    }
-    return this.redis;
+  private async command<T>(command: string[]): Promise<T> {
+    const res = await fetch(this.url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(command),
+    });
+    if (!res.ok) throw new Error(`Redis HTTP ${res.status}`);
+    const data = await res.json() as { result?: T; error?: string };
+    if (data.error) throw new Error(data.error);
+    return data.result as T;
   }
 }
