@@ -1,7 +1,14 @@
 import * as cheerio from "cheerio";
-import type { Book, Category, Footnote, LibrarySource, Page, SearchResult, TocItem } from "../models";
+import type { Cheerio } from "cheerio";
+import type { AnyNode } from "domhandler";
+import type { Book, Category, CategoryBookOptions, Footnote, LibrarySource, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
 import { cleanWhitespace, type AnyObj } from "../source-utils";
+
+/**
+ * NOTE: lib.rafed.net robots.txt disallows all crawlers (Disallow: /).
+ * This adapter uses read-only public endpoints. Use responsibly and at your own risk.
+ */
 
 const arabicDigits = /[\u0660-\u0669]/g;
 
@@ -84,30 +91,25 @@ function parseSidebarField(sidebarHtml: string, fieldLabel: string): string | un
 // Parse helpers
 // =========================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSearchRow(row: any): SearchResult | undefined {
-  // Search result row structure:
-  //   <div class="resultRow">
-  //     <span style="font-size:10px;color:#888;">description</span><br />  (optional)
-  //     <a href="...?b_id=N"><h2>TITLE</h2> <span style="color:#DA0;">[volumes info]</span></a><br>
-  //     <span style="color: green;">AUTHOR</span> في <a href="...">CATEGORY</a><br>
-  //     <span class="msg">...</span>  (optional)
-  //     <div class="resultFound">...</div>  (optional)
-  //   </div>
+function parseSearchRow(row: Cheerio<AnyNode>): SearchResult | undefined {
   const link = row.find("a[href*='b_id=']").first();
   const href = link.attr("href") ?? "";
   const bidMatch = href.match(/b_id=(\d+)/);
   const bookId = bidMatch ? bidMatch[1] : undefined;
   if (!bookId) return undefined;
 
-  // Title is in <h2> inside the link
   const title = clean(row.find("h2").first().text()) || undefined;
 
-  // Author is in a <span> with color:green (the inline style)
-  const author = clean(row.find('span[style*="green"]').first().text()) || undefined;
+  // Author: try .author-name class first, fallback to green inline style
+  const author = clean(row.find(".author-name").first().text())
+    || clean(row.find('span[style*="green"]').first().text())
+    || undefined;
 
-  // Snippet from resultFound div
-  const snippet = clean(row.find("div.resultFound").text()) || undefined;
+  // Snippet: try .resultFound first, fallback to .result-text or .msg
+  const snippet = clean(row.find("div.resultFound").text())
+    || clean(row.find("div.result-text").text())
+    || clean(row.find("span.msg").text())
+    || undefined;
 
   return {
     source: "rafed",
@@ -121,17 +123,21 @@ function parseSearchRow(row: any): SearchResult | undefined {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseInBookRow(row: any): SearchResult | undefined {
+function parseInBookRow(row: Cheerio<AnyNode>): SearchResult | undefined {
   const link = row.find("a[href]").first();
   const href = link.attr("href") ?? "";
   const linkText = clean(link.text());
-  const snippet = clean(row.find("div.restext").text());
-  const pageText = clean(row.find("div.respage").text());
+  // Try .restext first, fallback to .result-text or direct text
+  const snippet = clean(row.find("div.restext").text())
+    || clean(row.find("div.result-text").text())
+    || undefined;
+  const pageText = clean(row.find("div.respage").text())
+    || clean(row.find("span.page-num").text())
+    || undefined;
 
   const rel = link.attr("rel");
   const page = rel ? Number(rel) : undefined;
-  const heading = clean(row.prevAll("li.resrow").first().find("h3").text());
+  const heading = clean(row.prevAll("li.resrow").first().find("h3").text()) || undefined;
 
   return {
     source: "rafed",
@@ -175,7 +181,9 @@ export class RafedSource implements LibrarySource {
 
     const $ = cheerio.load(output);
     const results: SearchResult[] = [];
-    $("div.resultRow").each((_, row) => {
+    // Try .resultRow first, fallback to .search-result-row
+    const rows = $("div.resultRow").length ? $("div.resultRow") : $("div.search-result-row");
+    rows.each((_, row) => {
       if (results.length >= limit) return false;
       const r = parseSearchRow($(row));
       if (r) results.push(r);
@@ -195,7 +203,9 @@ export class RafedSource implements LibrarySource {
     const $ = cheerio.load(output);
     const results: SearchResult[] = [];
     const maxRows = limit <= 0 ? Number.POSITIVE_INFINITY : Math.max(limit, 500);
-    $("li.resrowt").each((_, row) => {
+    // Try li.resrowt first, fallback to li.search-result or div.result-row
+    const rows = $("li.resrowt").length ? $("li.resrowt") : $("li.search-result, div.result-row");
+    rows.each((_, row) => {
       if (results.length >= maxRows) return false;
       const r = parseInBookRow($(row));
       if (r) {
@@ -221,26 +231,29 @@ export class RafedSource implements LibrarySource {
 
     const $ = cheerio.load(output);
     const results: Book[] = [];
-    $("div.resultRow").each((_, row) => {
+    // Try .resultRow first, fallback to .search-result-row
+    const bookRows = $("div.resultRow").length ? $("div.resultRow") : $("div.search-result-row");
+    bookRows.each((_, row) => {
       if (results.length >= limit) return false;
       const row$ = $(row);
 
-      // Find the primary link (the one with the book ID)
       const link = row$.find("a[href*='b_id=']").first();
       const href = link.attr("href") ?? "";
       const bidMatch = href.match(/b_id=(\d+)/);
       const bookId = bidMatch ? bidMatch[1] : undefined;
       if (!bookId) return;
 
-      // Title is inside <h2> within the link
       const title = clean(row$.find("h2").first().text()) || undefined;
       if (!title) return;
 
-      // Author is in <span style="color: green;">
-      const author = clean(row$.find('span[style*="green"]').first().text()) || undefined;
+      // Author: try .author-name class first, fallback to green inline style
+      const author = clean(row$.find(".author-name").first().text())
+        || clean(row$.find('span[style*="green"]').first().text())
+        || undefined;
 
-      // Volume info from the gold span
-      const volSpan = clean(row$.find('span[style*="#DA0"]').first().text());
+      // Volume info: try .volume-info first, fallback to gold span
+      const volSpan = clean(row$.find(".volume-info").first().text())
+        || clean(row$.find('span[style*="#DA0"]').first().text());
       let volume: string | undefined;
       const volMatch = volSpan.match(/([\d\u0660-\u0669]+)/);
       if (volMatch) {
@@ -438,17 +451,19 @@ export class RafedSource implements LibrarySource {
       const output = typeof data.output === "string" ? data.output : "";
       const $ = cheerio.load(output);
       const suggestions: Array<{ id: string; label: string }> = [];
-      $("div.resultRow").each((_, row) => {
-        if (suggestions.length >= limit) return false;
-        const row$ = $(row);
-        const link = row$.find("a[href*='b_id=']").first();
-        const href = link.attr("href") ?? "";
-        const bidMatch = href.match(/b_id=(\d+)/);
-        const text = clean(row$.find("h2").first().text()) || clean(row$.text());
-        if (bidMatch && text) {
-          suggestions.push({ id: bidMatch[1], label: text });
-        }
-      });
+    // Try .resultRow first, fallback to .search-result-row
+    const suggestRows = $("div.resultRow").length ? $("div.resultRow") : $("div.search-result-row");
+    suggestRows.each((_, row) => {
+      if (suggestions.length >= limit) return false;
+      const row$ = $(row);
+      const link = row$.find("a[href*='b_id=']").first();
+      const href = link.attr("href") ?? "";
+      const bidMatch = href.match(/b_id=(\d+)/);
+      const text = clean(row$.find("h2").first().text()) || clean(row$.text());
+      if (bidMatch && text) {
+        suggestions.push({ id: bidMatch[1], label: text });
+      }
+    });
       return suggestions;
     } catch {
       return [];
@@ -467,7 +482,9 @@ export class RafedSource implements LibrarySource {
     }));
   }
 
-  async categoryBooks(categoryId: string, limit = 50, page = 1): Promise<Book[]> {
+  async categoryBooks(categoryId: string, options: CategoryBookOptions | number = {}, _page?: number): Promise<Book[]> {
+    const limit = typeof options === "number" ? options : (options.limit ?? 50);
+    const page = typeof options === "number" ? (_page ?? 1) : (options.page ?? 1);
     const params = new URLSearchParams({
       type: "c_blist",
       cid: categoryId,

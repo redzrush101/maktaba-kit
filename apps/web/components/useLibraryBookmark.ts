@@ -7,7 +7,8 @@ export type BookmarkInput = Omit<LibraryItem, "createdAt" | "updatedAt" | "ref">
 
 export function useLibraryBookmark({ itemRef, ...item }: BookmarkInput) {
   const [bookmarked, setBookmarked] = useState(false);
-  const storageItem = useMemo(() => ({ ...item, ref: itemRef }), [itemRef, item.source, item.bookId, item.volume, item.page, item.title, item.author, item.url]);
+  const depKey = `${itemRef}:${item.source}:${item.bookId}:${item.volume ?? ""}:${item.page}`;
+  const storageItem = useMemo(() => ({ ...item, ref: itemRef }), [depKey]);
 
   useEffect(() => {
     const recent = readItems(recentKey);
@@ -16,7 +17,7 @@ export function useLibraryBookmark({ itemRef, ...item }: BookmarkInput) {
       upsertItem(recentKey, storageItem, 50);
     }
     setBookmarked(readItems(bookmarksKey).some((entry) => entry.ref === storageItem.ref));
-  }, [storageItem]);
+  }, [depKey, storageItem]);
 
   function toggleBookmark() {
     if (bookmarked) {

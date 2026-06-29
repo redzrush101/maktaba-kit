@@ -1,7 +1,9 @@
+import { cache } from "react";
 import { createMaktabaClient, MemoryCache, type CacheStore } from "@maktaba-kit/core/server";
 
 const ttlMs = Number(process.env.MAKTABA_CACHE_TTL_MS ?? 86_400_000);
-const localCache = new MemoryCache(ttlMs, true, Number(process.env.MAKTABA_MEMORY_CACHE_ENTRIES ?? 1_000));
+
+
 
 class UpstashRestCache implements CacheStore {
   constructor(
@@ -51,15 +53,24 @@ class UpstashRestCache implements CacheStore {
 }
 
 function createCacheStore(): CacheStore {
+  const localCache = new MemoryCache(ttlMs, true, Number(process.env.MAKTABA_MEMORY_CACHE_ENTRIES ?? 1_000));
   const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return localCache;
   return new UpstashRestCache(url, token, localCache, ttlMs);
 }
 
-export const maktabaClient = createMaktabaClient({
-  timeoutMs: 18_000,
-  ttlMs,
-  cacheStore: createCacheStore(),
-  userAgent: process.env.MAKTABA_USER_AGENT,
-});
+/** Scoped per-request via React cache() to avoid shared mutable state across requests. */
+export const getMaktabaClient = cache(() =>
+  createMaktabaClient({
+    timeoutMs: 18_000,
+    ttlMs,
+    cacheStore: createCacheStore(),
+    userAgent: process.env.MAKTABA_USER_AGENT,
+  }),
+);
+
+/** Getter that returns the per-request scoped client. Use in Server Components and API routes. */
+export function maktabaClient() {
+  return getMaktabaClient();
+}

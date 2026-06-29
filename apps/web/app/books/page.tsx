@@ -8,7 +8,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const q = params.q ?? "";
   const source = sourceParamValue(params.source);
-  const res = q ? await maktabaClient.books(q, { source, limit: 16 }) : { data: [], errors: [], ok: true };
+  const res = q ? await maktabaClient().books(q, { source, limit: 16 }) : { data: [], errors: [], ok: true };
   return (
     <main>
       <Header />

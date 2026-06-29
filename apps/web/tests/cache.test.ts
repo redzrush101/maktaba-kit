@@ -19,7 +19,9 @@ describe("MemoryCache", () => {
     expect(cache.get("c")).toBe(3);
   });
 
-  it("builds stable keys", () => {
-    expect(cacheKey("get", "https://example.test", undefined, { a: "b" })).toBe(cacheKey("GET", "https://example.test", undefined, { a: "b" }));
+  it("builds stable keys", async () => {
+    const key1 = await cacheKey("get", "https://example.test", undefined, { a: "b" });
+    const key2 = await cacheKey("GET", "https://example.test", undefined, { a: "b" });
+    expect(key1).toBe(key2);
   });
 });

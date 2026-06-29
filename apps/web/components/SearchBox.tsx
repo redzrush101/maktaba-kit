@@ -1,7 +1,6 @@
 "use client";
 
-import { Check, ChevronDown } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 
 export type SearchMode = "all" | "text" | "books";
 
@@ -92,95 +91,21 @@ export function SearchBox({
 
 function FieldSelect({ name, value, options, ariaLabel, compact = false }: { name: string; value: string; options: ReadonlyArray<readonly [string, string]>; ariaLabel: string; compact?: boolean }) {
   const [selected, setSelected] = useState(value);
-  const [open, setOpen] = useState(false);
-  const [focusIndex, setFocusIndex] = useState(-1);
-  const listRef = useRef<HTMLDivElement>(null);
-  const label = options.find(([optionValue]) => optionValue === selected)?.[1] ?? selected;
-
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (!open) {
-      if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        setOpen(true);
-        setFocusIndex(Math.max(0, options.findIndex(([v]) => v === selected)));
-      }
-      return;
-    }
-    switch (event.key) {
-      case "ArrowDown":
-        event.preventDefault();
-        setFocusIndex((i) => Math.min(options.length - 1, i + 1));
-        break;
-      case "ArrowUp":
-        event.preventDefault();
-        setFocusIndex((i) => Math.max(0, i - 1));
-        break;
-      case "Enter":
-      case " ":
-        event.preventDefault();
-        if (focusIndex >= 0 && focusIndex < options.length) {
-          setSelected(options[focusIndex][0]);
-          setOpen(false);
-        }
-        break;
-      case "Escape":
-        event.preventDefault();
-        setOpen(false);
-        break;
-    }
-  }, [open, focusIndex, options, selected]);
 
   return (
-    <div className={`relative min-w-0 ${open ? "z-50" : "z-10"}`} onBlur={(event) => {
-      if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); setFocusIndex(-1); }
-    }}>
+    <>
       <input type="hidden" name={name} value={selected} />
-      <button
-        type="button"
+      <select
         aria-label={ariaLabel}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        onClick={() => {
-          setOpen((current) => {
-            if (!current) setFocusIndex(Math.max(0, options.findIndex(([v]) => v === selected)));
-            else setFocusIndex(-1);
-            return !current;
-          });
-        }}
-        onKeyDown={handleKeyDown}
-        className={`${compact ? "min-h-9 px-3" : "min-h-12 px-3 sm:min-w-32"} inline-flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-[rgb(var(--sheet))]/70 font-sans text-xs text-ink outline-none transition hover:border-accent/50 focus:border-accent/70 focus:ring-2 focus:ring-accent/15`}
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        className={`${compact ? "min-h-9 px-3" : "min-h-12 px-3 sm:min-w-32"} w-full appearance-none rounded-xl border border-line bg-[rgb(var(--sheet))]/70 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2215%22%20height%3D%2215%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23999%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:15px] bg-[right_0.5rem_center] bg-no-repeat pr-8 font-sans text-xs text-ink outline-none transition hover:border-accent/50 focus:border-accent/70 focus:ring-2 focus:ring-accent/15`}
       >
-        <span className="truncate">{label}</span>
-        <ChevronDown size={15} className={`shrink-0 text-muted transition ${open ? "rotate-180" : ""}`} />
-      </button>
-      {open && (
-        <div ref={listRef} role="listbox" className="relative z-50 mt-1 w-full overflow-hidden rounded-xl border border-line bg-[rgb(var(--sheet))] p-1 shadow-soft sm:absolute sm:left-0 sm:top-[calc(100%+.35rem)] sm:mt-0 sm:w-max sm:min-w-full">
-          {options.map(([optionValue, optionLabel], index) => {
-            const active = optionValue === selected;
-            const focused = index === focusIndex;
-            return (
-              <button
-                key={optionValue}
-                type="button"
-                role="option"
-                aria-selected={active}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  setSelected(optionValue);
-                  setOpen(false);
-                  setFocusIndex(-1);
-                }}
-                onMouseEnter={() => setFocusIndex(index)}
-                className={`flex min-h-9 w-full items-center justify-between gap-3 rounded-lg px-3 text-left font-sans text-xs ${active ? "bg-accent/20 text-ink" : focused ? "bg-ink/5 text-ink" : "text-muted hover:bg-ink/5 hover:text-ink"}`}
-              >
-                <span className="whitespace-nowrap">{optionLabel}</span>
-                {active && <Check size={14} />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue} value={optionValue}>{optionLabel}</option>
+        ))}
+      </select>
+    </>
   );
 }
 

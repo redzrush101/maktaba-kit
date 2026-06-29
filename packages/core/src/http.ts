@@ -2,10 +2,11 @@ import { MemoryCache, cacheKey, type CacheStore } from "./cache";
 
 export type HttpResponse = { status: number; text: string; url: string; headers: Record<string, string> };
 
-const hostQueues = new Map<string, Promise<void>>();
 const retryStatuses = new Set([429, 500, 502, 503, 504]);
 
 export class HttpClient {
+  private hostQueues = new Map<string, Promise<void>>();
+
   constructor(
     private cache: CacheStore = new MemoryCache(),
     private timeoutMs = 20_000,
@@ -17,7 +18,7 @@ export class HttpClient {
 
   async request(method: string, url: string, init: RequestInit = {}): Promise<HttpResponse> {
     const headers = { "User-Agent": this.userAgent, ...(init.headers as Record<string, string> | undefined) };
-    const key = cacheKey(method, url, init.body, headers);
+    const key = await cacheKey(method, url, init.body, headers);
     const cached = await this.cache.get<HttpResponse>(key);
     if (cached) return cached;
 
@@ -58,10 +59,10 @@ export class HttpClient {
 
   private async waitForHost(url: string) {
     const host = new URL(url).host;
-    const previous = hostQueues.get(host) ?? Promise.resolve();
+    const previous = this.hostQueues.get(host) ?? Promise.resolve();
     let release!: () => void;
     const current = previous.then(() => new Promise<void>((resolve) => { release = resolve; }));
-    hostQueues.set(host, current);
+    this.hostQueues.set(host, current);
     await previous;
     setTimeout(release, this.minHostDelayMs);
   }

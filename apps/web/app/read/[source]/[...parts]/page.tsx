@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
 import { groupTocSections, readerPath, readerRefFromParts, refString, splitArabicEnglish, type TocItem } from "@maktaba-kit/core/client";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
@@ -15,6 +17,57 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type VolumeOption = { label: string; value: string };
 
+export async function generateMetadata({ params }: { params: Promise<{ source: string; parts: string[] }> }): Promise<Metadata> {
+  const { source, parts } = await params;
+  const parsedRef = readerRefFromParts(source, parts);
+  if (!parsedRef.bookId) return { title: "Reader | Maktaba Kit" };
+  const ref = refString(parsedRef);
+  try {
+    const infoRes = await maktabaClient().info(ref);
+    const book = infoRes.data[0];
+    if (book?.title) return { title: `${book.title} — p. ${parsedRef.page ?? 1} | Maktaba Kit` };
+  } catch { /* fallback */ }
+  return { title: `Reader — ${ref} | Maktaba Kit` };
+}
+
+function TocSkeleton() {
+  return (
+    <div className="space-y-1">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="h-6 animate-pulse rounded bg-line/50" />
+      ))}
+    </div>
+  );
+}
+
+async function ReaderTocContent({ ref, parts, bookId, volume, pageNo, currentChapterName }: { ref: string; parts: string[]; bookId: string; volume?: string; pageNo: number; currentChapterName?: string }) {
+  const tocRes = await maktabaClient().toc(ref, 500);
+  if (!tocRes.data.length) return null;
+  return (
+    <nav className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 shadow-sm" aria-label="Table of contents">
+      <p className="mb-2 font-sans font-semibold text-ink">Table of contents</p>
+      <ScrollCurrentToc containerId="desktop-reader-toc" />
+      <div className="space-y-1 text-sm leading-6">
+        <TocSections items={tocRes.data} parts={parts} bookId={bookId} volume={volume} pageNo={pageNo} currentChapterName={currentChapterName} />
+      </div>
+    </nav>
+  );
+}
+
+async function MobileTocPanel({ ref, source, bookId, volume, page, currentChapterName }: { ref: string; source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; bookId: string; volume?: string; page: number; currentChapterName?: string }) {
+  const tocRes = await maktabaClient().toc(ref, 500);
+  const { MobileToc } = await import("@/components/MobileReaderToolbar");
+  return <MobileToc toc={tocRes.data} source={source} bookId={bookId} volume={volume} page={page} currentChapterName={currentChapterName} />;
+}
+
+function MobileTocSkeleton() {
+  return (
+    <div className="space-y-1">
+      {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded bg-line/40" />)}
+    </div>
+  );
+}
+
 export default async function ReaderPage({ params }: { params: Promise<{ source: string; parts: string[] }> }) {
   const { source, parts } = await params;
   const parsedRef = readerRefFromParts(source, parts);
@@ -23,7 +76,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
   const bookId = parsedRef.bookId;
   const volume = parsedRef.volume;
   const ref = refString(parsedRef);
-  const [res, infoRes, tocRes] = await Promise.all([maktabaClient.read(ref), maktabaClient.info(ref), maktabaClient.toc(ref, 500)]);
+  const [res, infoRes] = await Promise.all([maktabaClient().read(ref), maktabaClient().info(ref)]);
   const page = res.data[0];
   const info = infoRes.data[0];
   const pageNo = page?.page ?? Number(parts.at(-1) ?? 1);
@@ -90,15 +143,9 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
             {page?.url && <a className="mt-3 block rounded-lg border border-line px-2 py-1.5 text-center" href={page.url} target="_blank">Original</a>}
           </div>
           <ReaderSettings />
-          {!!tocRes.data.length && (
-            <nav className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 shadow-sm" aria-label="Table of contents">
-              <p className="mb-2 font-sans font-semibold text-ink">Table of contents</p>
-              <ScrollCurrentToc containerId="desktop-reader-toc" />
-              <div className="space-y-1 text-sm leading-6">
-                <TocSections items={tocRes.data} parts={parts} bookId={bookId} volume={volume} pageNo={pageNo} currentChapterName={currentChapterName} />
-              </div>
-            </nav>
-          )}
+          <Suspense fallback={<div className="rounded-xl border border-line bg-[rgb(var(--sheet))]/80 p-3 shadow-sm"><p className="mb-2 font-sans font-semibold text-ink">Table of contents</p><TocSkeleton /></div>}>
+            <ReaderTocContent ref={ref} parts={parts} bookId={bookId} volume={volume} pageNo={pageNo} currentChapterName={currentChapterName} />
+          </Suspense>
           {!!res.errors.length && <p className="rounded-xl border border-line p-3 font-sans text-xs text-muted">{res.errors.map((e) => e.message).join("; ")}</p>}
         </aside>
         <article className="book-sheet order-1 rounded-2xl border border-line p-5 pb-24 sm:p-7 sm:pb-28 lg:order-2 lg:p-8" dir="rtl">
@@ -146,7 +193,7 @@ export default async function ReaderPage({ params }: { params: Promise<{ source:
           ) : <p className="font-sans text-2xl text-muted">Could not load this page.</p>}
         </article>
       </section>
-      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={tocRes.data} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} pageUrl={page?.url} currentChapterName={currentChapterName} />
+      <MobileReaderToolbar prevHref={prevHref} nextHref={nextHref} toc={[]} volumes={volumes} source={sourceName} bookId={bookId} volume={volume} page={pageNo} maxPage={maxPage} bookmarkItem={libraryItem} pageUrl={page?.url} currentChapterName={currentChapterName} tocSlot={<Suspense fallback={<MobileTocSkeleton />}><MobileTocPanel ref={ref} source={sourceName} bookId={bookId} volume={volume} page={pageNo} currentChapterName={currentChapterName} /></Suspense>} />
       <div className="page-progress" aria-hidden="true"><span style={{ width: progress }} /></div>
     </main>
   );

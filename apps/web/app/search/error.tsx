@@ -1,5 +1,4 @@
 "use client";
 
-import ErrorPage from "../error";
-
+import ErrorPage from "@/components/ErrorPage";
 export default ErrorPage;

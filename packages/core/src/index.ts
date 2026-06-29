@@ -1,6 +1,6 @@
 import { MemoryCache, type CacheStore } from "./cache";
 import { HttpClient } from "./http";
-import type { ApiResponse, Book, Category, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
+import type { ApiResponse, Book, Category, CategoryBookOptions, LibrarySource, Page, SearchOptions, SearchResult, SourceError, SourceName, SourceSelect, TocItem } from "./models";
 import { parseRef } from "./refs";
 import { normalizeArabic, postProcessBooks, postProcessSearchResults } from "./search-utils";
 import { AblibrarySource } from "./sources/ablibrary";
@@ -13,6 +13,8 @@ export * from "./models";
 export * from "./refs";
 export * from "./search-utils";
 export * from "./source-utils";
+
+export type { CategoryBookOptions } from "./models";
 
 export type MaktabaClientOptions = { timeoutMs?: number; ttlMs?: number; userAgent?: string; cache?: boolean; maxCacheEntries?: number; cacheStore?: CacheStore };
 
@@ -113,21 +115,26 @@ export class MaktabaClient {
     }
   }
 
-  async categories(): Promise<ApiResponse<Category[]>> {
-    try {
-      const source = this.sources.ablibrary as AblibrarySource;
-      return { ok: true, data: await source.categories(), errors: [] };
-    } catch (e) {
-      return { ok: false, data: [], errors: [toSourceError("ablibrary", e)] };
-    }
+  async categories(sourceFilter?: SourceName): Promise<ApiResponse<Category[]>> {
+    const source = sourceFilter ?? "all";
+    const { data, errors } = await this.many<Category>(source, async (s) => {
+      if (typeof s.categories !== "function") return [];
+      return s.categories();
+    });
+    return apiResponse(data, errors);
   }
 
-  async categoryBooks(categoryId: string, options: SearchOptions = {}): Promise<ApiResponse<Book[]>> {
+  async categoryBooks(categoryId: string, options: SearchOptions & CategoryBookOptions = {}): Promise<ApiResponse<Book[]>> {
+    const sourceName = options.source && options.source !== "all" ? options.source as SourceName : "ablibrary";
+    const src = this.sources[sourceName];
+    if (!src || typeof src.categoryBooks !== "function") {
+      return { ok: false, data: [], errors: [{ source: sourceName, code: "Unsupported", message: `Source ${sourceName} does not support category browsing` }], query: categoryId };
+    }
     try {
-      const source = this.sources.ablibrary as AblibrarySource;
-      return { ok: true, data: await source.categoryBooks(categoryId, options.limit ?? 50, options.page ?? 1), errors: [], query: categoryId };
+      const data = await src.categoryBooks(categoryId, { limit: options.limit ?? 50, page: options.page ?? 1 });
+      return { ok: true, data, errors: [], query: categoryId };
     } catch (e) {
-      return { ok: false, data: [], errors: [toSourceError("ablibrary", e)], query: categoryId };
+      return { ok: false, data: [], errors: [toSourceError(sourceName, e)], query: categoryId };
     }
   }
 

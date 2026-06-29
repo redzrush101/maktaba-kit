@@ -1,15 +1,26 @@
+import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { BookCard } from "@/components/BookCard";
 import Link from "next/link";
+
+export async function generateMetadata({ params }: { params: Promise<{ categoryId: string }> }): Promise<Metadata> {
+  const { categoryId } = await params;
+  try {
+    const res = await maktabaClient().categories();
+    const category = res.data.find((item) => item.id === categoryId);
+    if (category?.name) return { title: `${category.name} | Maktaba Kit` };
+  } catch { /* fallback */ }
+  return { title: `Category ${categoryId} | Maktaba Kit` };
+}
 
 export default async function CategoryPage({ params, searchParams }: { params: Promise<{ categoryId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { categoryId } = await params;
   const { page = "1" } = await searchParams;
   const pageNo = Math.max(1, Number(page));
   const [categoriesRes, booksRes] = await Promise.all([
-    maktabaClient.categories(),
-    maktabaClient.categoryBooks(categoryId, { limit: 48, page: pageNo }),
+    maktabaClient().categories(),
+    maktabaClient().categoryBooks(categoryId, { limit: 48, page: pageNo }),
   ]);
   const category = categoriesRes.data.find((item) => item.id === categoryId);
 

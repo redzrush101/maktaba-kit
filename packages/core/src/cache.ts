@@ -30,10 +30,6 @@ export class MemoryCache implements CacheStore {
   }
 }
 
-export function cacheKey(method: string, url: string, body?: unknown, headers?: unknown) {
-  return `mk:http:${hash(stableStringify([method.toUpperCase(), url, body ?? null, headers ?? null]))}`;
-}
-
 function stableStringify(value: unknown): string {
   if (!value || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
@@ -41,11 +37,11 @@ function stableStringify(value: unknown): string {
   return `{${Object.keys(obj).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(",")}}`;
 }
 
-function hash(input: string) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(36);
+export async function cacheKey(method: string, url: string, body?: unknown, headers?: unknown): Promise<string> {
+  const input = stableStringify([method.toUpperCase(), url, body ?? null, headers ?? null]);
+  const encoded = new TextEncoder().encode(input);
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", encoded);
+  const hashArray = Array.from(new Uint8Array(digest));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `mk:http:${hashHex}`;
 }

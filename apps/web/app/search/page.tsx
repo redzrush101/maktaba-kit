@@ -41,7 +41,7 @@ function BooksSkeleton() {
 }
 
 async function TextResults({ q, source, bookId, volume, limit, page, strictVolume, exact, matchAll }: { q: string; source: SourceSelect; bookId?: string; volume?: string; limit: number; page: number; strictVolume: boolean; exact: boolean; matchAll: boolean }) {
-  const textRes = await maktabaClient.search(q, { source, bookId, volume, limit, page, strictVolume, exact, matchAll });
+  const textRes = await maktabaClient().search(q, { source, bookId, volume, limit, page, strictVolume, exact, matchAll });
   return (
     <>
       {!!textRes.errors.length && <div className="mb-4 rounded-xl border border-line bg-paper/50 p-3 font-sans text-xs text-muted">Text search: {textRes.errors.map((e) => `${e.source}: ${e.message}`).join("; ")}</div>}
@@ -56,7 +56,7 @@ async function TextResults({ q, source, bookId, volume, limit, page, strictVolum
 }
 
 async function BookResults({ q, source, limit, page, matchAll }: { q: string; source: SourceSelect; limit: number; page: number; matchAll: boolean }) {
-  const booksRes = await maktabaClient.books(q, { source, limit, page, matchAll });
+  const booksRes = await maktabaClient().books(q, { source, limit, page, matchAll });
   return (
     <>
       {!!booksRes.errors.length && <div className="mb-4 rounded-xl border border-line bg-paper/50 p-3 font-sans text-xs text-muted">Book search: {booksRes.errors.map((e) => `${e.source}: ${e.message}`).join("; ")}</div>}

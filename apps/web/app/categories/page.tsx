@@ -3,7 +3,7 @@ import { maktabaClient } from "@/lib/maktaba-client";
 import Link from "next/link";
 
 export default async function CategoriesPage() {
-  const res = await maktabaClient.categories();
+  const res = await maktabaClient().categories();
   const categoryGroups = chunk(res.data, 12);
 
   return (

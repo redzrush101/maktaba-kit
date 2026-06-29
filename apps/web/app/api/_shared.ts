@@ -10,7 +10,7 @@ export function requestUrl(req: Request) {
 export { limitParam, positiveIntParam, sourceParam };
 
 export function client() {
-  return maktabaClient;
+  return maktabaClient();
 }
 
 export function badRequest(message: string) {

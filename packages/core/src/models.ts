@@ -1,16 +1,46 @@
 export type SourceName = "ablibrary" | "eshia" | "thaqalayn" | "rafed";
 export type SourceSelect = SourceName | "all";
 
-/** Known ABLibrary book metadata fields. */
-export type AblibraryBookMeta = Record<string, unknown>;
+export type VolumeOption = { label: string; value: string };
 
-/** Known eShia book metadata fields. */
-export type EshiaBookMeta = Record<string, unknown>;
+export type AblibraryBookMeta = {
+  source?: unknown;
+  categories?: unknown;
+  contributors?: unknown;
+  languages?: unknown;
+  volumes?: VolumeOption[];
+};
 
-/** Known Thaqalayn book metadata fields. */
-export type ThaqalaynBookMeta = Record<string, unknown>;
+export type EshiaBookMeta = {
+  titleLine?: string;
+  maxPage?: number;
+  volumes?: VolumeOption[];
+  [key: string]: unknown;
+};
 
-export type BookMeta = Record<string, unknown>;
+export type ThaqalaynBookMeta = {
+  nameAr?: unknown;
+  blurbEn?: string;
+  englishName?: string;
+  authorLink?: string;
+  authorDeathDate?: string;
+  translator?: string;
+  volumes?: VolumeOption[];
+  [key: string]: unknown;
+};
+
+export type RafedBookMeta = {
+  publisher?: string;
+  subject?: string;
+  edition?: string;
+  publicationDate?: string;
+  bEd?: string;
+  bSt?: string;
+  lim?: string;
+  [key: string]: unknown;
+};
+
+export type BookMeta = AblibraryBookMeta | EshiaBookMeta | ThaqalaynBookMeta | RafedBookMeta | Record<string, unknown>;
 
 export type Book = {
   source: SourceName;
@@ -45,16 +75,30 @@ export type Footnote = {
   text: string;
 };
 
-/** Known ABLibrary page metadata fields. */
+export type HadithGrade = { grade: string; grader: string; reference?: string };
+
 export type AblibraryPageMeta = Record<string, unknown>;
 
-/** Known eShia page metadata fields. */
-export type EshiaPageMeta = Record<string, unknown>;
+export type EshiaPageMeta = {
+  titleLine?: string;
+  maxPage?: number;
+  volumes?: VolumeOption[];
+  [key: string]: unknown;
+};
 
-/** Known Thaqalayn page metadata fields: chapterName, textEn, gradings. */
-export type ThaqalaynPageMeta = Record<string, unknown>;
+export type ThaqalaynPageMeta = {
+  chapterName?: string;
+  textEn?: string;
+  gradings?: HadithGrade[];
+  [key: string]: unknown;
+};
 
-export type PageMeta = Record<string, unknown>;
+export type RafedPageMeta = {
+  pageLabel?: string;
+  [key: string]: unknown;
+};
+
+export type PageMeta = AblibraryPageMeta | EshiaPageMeta | ThaqalaynPageMeta | RafedPageMeta | Record<string, unknown>;
 
 export type Page = {
   source: SourceName;
@@ -86,6 +130,8 @@ export type Category = {
   name: string;
   weight?: number;
 };
+
+export type CategoryBookOptions = { limit?: number; page?: number };
 
 export type SourceError = {
   source: SourceName | "maktaba";
@@ -129,4 +175,6 @@ export interface LibrarySource {
   info(bookId: string, volume?: string): Promise<Book>;
   toc(bookId: string, volumeOrLimit?: string | number, limit?: number): Promise<TocItem[]>;
   suggest(query: string, limit?: number): Promise<unknown[]>;
+  categories?(): Promise<Category[]>;
+  categoryBooks?(categoryId: string, options?: CategoryBookOptions): Promise<Book[]>;
 }

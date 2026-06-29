@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Amiri, Inter, Vazirmatn } from "next/font/google";
 import "./globals.css";
 
@@ -15,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" className={`${arabic.variable} ${arabicSans.variable} ${sans.variable}`} suppressHydrationWarning>
       <body className="bg-paper text-ink antialiased">
-        <script dangerouslySetInnerHTML={{ __html: readerSettingsScript }} />
+        <Script id="reader-settings" strategy="beforeInteractive">{readerSettingsScript}</Script>
         <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgb(var(--accent)/.10),transparent_28rem)]">
           {children}
         </div>
@@ -26,14 +27,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 const readerSettingsScript = `
 try {
-  const settings = JSON.parse(localStorage.getItem("maktaba-reader-settings") || "{}");
-  const root = document.documentElement;
-  root.classList.toggle("light", settings.theme === "light");
-  root.classList.toggle("sepia", settings.theme === "sepia");
-  if (settings.size) root.dataset.readerSize = settings.size;
-  if (settings.leading) root.dataset.readerLeading = settings.leading;
-  if (settings.width) root.dataset.readerWidth = settings.width;
-  if (settings.columns) root.dataset.readerColumns = settings.columns;
-  if (settings.font) root.dataset.readerFont = settings.font;
-} catch {}
+  var s = JSON.parse(localStorage.getItem("maktaba-reader-settings") || "{}");
+  var r = document.documentElement;
+  if (s.theme === "light") r.classList.add("light");
+  if (s.theme === "sepia") r.classList.add("sepia");
+  if (s.size) r.dataset.readerSize = s.size;
+  if (s.leading) r.dataset.readerLeading = s.leading;
+  if (s.width) r.dataset.readerWidth = s.width;
+  if (s.columns) r.dataset.readerColumns = s.columns;
+  if (s.font) r.dataset.readerFont = s.font;
+} catch (e) { console.warn("[maktaba] reader settings init failed:", e); }
 `;

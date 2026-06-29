@@ -1,4 +1,4 @@
-import type { Book, Category, LibrarySource, Page, SearchResult, TocItem } from "../models";
+import type { Book, Category, CategoryBookOptions, LibrarySource, Page, SearchResult, TocItem } from "../models";
 import type { HttpClient } from "../http";
 import { arrayOfObjects, asArray, asNumber, asObj, asString, type AnyObj } from "../source-utils";
 
@@ -44,7 +44,9 @@ export class AblibrarySource implements LibrarySource {
     })).filter((category) => category.id && category.name);
   }
 
-  async categoryBooks(categoryId: string, limit = 50, page = 1): Promise<Book[]> {
+  async categoryBooks(categoryId: string, options: CategoryBookOptions | number = {}, _page?: number): Promise<Book[]> {
+    const limit = typeof options === "number" ? options : (options.limit ?? 50);
+    const page = typeof options === "number" ? (_page ?? 1) : (options.page ?? 1);
     const data = await this.post("ablibrary.services.book_service.BookService", "List", { page, perPage: sourceLimit(limit), categories: [categoryId] });
     return take(arrayOfObjects(data.books), limit).map((b) => this.book(b));
   }

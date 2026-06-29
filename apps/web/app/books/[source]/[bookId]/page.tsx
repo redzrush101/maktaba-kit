@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import type { TocItem } from "@maktaba-kit/core/client";
 import { groupTocSections, normalizeSource, readerPath, refString } from "@maktaba-kit/core/client";
 import { maktabaClient } from "@/lib/maktaba-client";
 import { Header } from "@/components/Header";
@@ -5,18 +7,37 @@ import { SearchBox } from "@/components/SearchBox";
 import { SourceBadge } from "@/components/SourceBadge";
 import Link from "next/link";
 
+export async function generateMetadata({ params, searchParams }: { params: Promise<{ source: string; bookId: string }>; searchParams: Promise<Record<string, string | undefined>> }): Promise<Metadata> {
+  const { source, bookId } = await params;
+  const { volume = "1" } = await searchParams;
+  const sourceName = normalizeSource(source);
+  const ref = refString({ source: sourceName, bookId, volume: sourceName === "eshia" ? volume : undefined, page: 1 });
+  try {
+    const infoRes = await maktabaClient().info(ref);
+    const book = infoRes.data[0];
+    if (book?.title) {
+      return {
+        title: `${book.title}${book.author ? ` — ${book.author}` : ""} | Maktaba Kit`,
+        description: book.meta && typeof book.meta === "object" && "blurbEn" in book.meta ? String((book.meta as Record<string, unknown>).blurbEn ?? "") : book.title ? `Read ${book.title} on Maktaba Kit` : undefined,
+      };
+    }
+  } catch { /* fallback to default */ }
+  return { title: `Book ${bookId} | Maktaba Kit` };
+}
+
 export default async function BookPage({ params, searchParams }: { params: Promise<{ source: string; bookId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { source, bookId } = await params;
   const { volume = "1" } = await searchParams;
   const sourceName = normalizeSource(source);
   const ref = refString({ source: sourceName, bookId, volume: sourceName === "eshia" ? volume : undefined, page: 1 });
-  const [infoRes, tocRes] = await Promise.all([maktabaClient.info(ref), maktabaClient.toc(ref, 120)]);
+  const [infoRes, tocRes] = await Promise.all([maktabaClient().info(ref), maktabaClient().toc(ref, 120)]);
   const book = infoRes.data[0];
   const volumes = (Array.isArray(book?.meta?.volumes) ? book.meta.volumes : []) as Array<{ label: string; value: string }>;
   const categories = (Array.isArray(book?.meta?.categories) ? book.meta.categories : []) as Array<{ id?: string; name?: string }>;
-  const blurb = typeof book?.meta?.blurbEn === "string" ? book.meta.blurbEn : undefined;
-  const translator = typeof book?.meta?.translator === "string" ? book.meta.translator : undefined;
-  const authorLink = typeof book?.meta?.authorLink === "string" ? book.meta.authorLink : undefined;
+  const bookMeta = (book?.meta ?? {}) as Record<string, unknown>;
+  const blurb = typeof bookMeta.blurbEn === "string" ? bookMeta.blurbEn : undefined;
+  const translator = typeof bookMeta.translator === "string" ? bookMeta.translator : undefined;
+  const authorLink = typeof bookMeta.authorLink === "string" ? bookMeta.authorLink : undefined;
   const firstToc = tocRes.data[0];
   const readHref = firstToc ? readerPath({ source: firstToc.source, bookId: firstToc.bookId, volume: firstToc.volume, page: firstToc.page ?? 1 }) : readerPath({ source: sourceName, bookId, volume, page: 1 });
 
@@ -71,7 +92,7 @@ export default async function BookPage({ params, searchParams }: { params: Promi
   );
 }
 
-type BookTocItem = Awaited<ReturnType<typeof maktabaClient.toc>>["data"][number];
+type BookTocItem = TocItem;
 
 function BookTocAccordion({ items, volume }: { items: BookTocItem[]; volume: string }) {
   const hasSections = items.some((item) => item.level === 0);

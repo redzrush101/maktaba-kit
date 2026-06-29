@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Bookmark, Check, List, SlidersHorizontal, Type, X, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,8 @@ import { type ReaderSettingsState, readerSettingsOptions, useReaderSettings } fr
 type VolumeOption = { label: string; value: string };
 type Panel = "toc" | "settings" | "tools" | null;
 
+export type MobileReaderNavigation = { prevHref: string; nextHref: string; page: number; maxPage?: number };
+export type MobileReaderBook = { source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; bookId: string; volume?: string };
 
 export function MobileReaderToolbar({
   prevHref,
@@ -26,6 +29,7 @@ export function MobileReaderToolbar({
   bookmarkItem,
   pageUrl,
   currentChapterName,
+  tocSlot,
 }: {
   prevHref: string;
   nextHref: string;
@@ -39,6 +43,7 @@ export function MobileReaderToolbar({
   bookmarkItem: BookmarkInput;
   pageUrl?: string;
   currentChapterName?: string;
+  tocSlot?: ReactNode;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>(null);
@@ -60,7 +65,7 @@ export function MobileReaderToolbar({
             <h2 className="font-sans text-base font-semibold text-ink">{panelTitle(panel)}</h2>
             <button type="button" onClick={() => setPanel(null)} className="rounded-full border border-line p-2 text-muted"><X size={18} /></button>
           </div>
-          {panel === "toc" && <MobileToc toc={toc} source={source} bookId={bookId} volume={volume} page={page} currentChapterName={currentChapterName} />}
+          {panel === "toc" && (tocSlot ?? <MobileToc toc={toc} source={source} bookId={bookId} volume={volume} page={page} currentChapterName={currentChapterName} />)}
           {panel === "settings" && (
             <div className="grid gap-3 font-sans text-sm text-muted">
               <Select label="Theme" value={settings.theme} options={readerSettingsOptions.theme} onChange={(value) => update("theme", value as ReaderSettingsState["theme"])} />
@@ -117,7 +122,7 @@ export function MobileReaderToolbar({
   );
 }
 
-function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { toc: TocItem[]; source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; bookId: string; volume?: string; page: number; currentChapterName?: string }) {
+export function MobileToc({ toc, source, bookId, volume, page, currentChapterName }: { toc: TocItem[]; source: "ablibrary" | "eshia" | "rafed" | "thaqalayn"; bookId: string; volume?: string; page: number; currentChapterName?: string }) {
   if (!toc.length) return <p className="font-sans text-sm text-muted" dir="ltr">No table of contents available.</p>;
 
   const hasSections = toc.some((item) => item.level === 0);

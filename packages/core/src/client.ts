@@ -1,4 +1,4 @@
-export type { Book, SearchResult, Page, TocItem, Category, SourceError, ApiResponse, ApiSuccess, ApiFailure, SearchOptions, SourceName, SourceSelect, Footnote, LibrarySource } from "./models";
+export type { Book, SearchResult, Page, TocItem, Category, SourceError, ApiResponse, ApiSuccess, ApiFailure, SearchOptions, SourceName, SourceSelect, Footnote, LibrarySource, VolumeOption, HadithGrade, CategoryBookOptions } from "./models";
 export { parseRef, readerRefFromParts, readerPath, bookPath, refString, normalizeSource } from "./refs";
 export type { ParsedRef, ReadPathInput, BookPathInput } from "./refs";
 export { normalizeArabic, searchTokens, includesNormalized, matchesAllTokens, dedupeSearchResults, dedupeBooks, scoreSearchResult, scoreBook, sortSearchResults, sortBooks, postProcessSearchResults, postProcessBooks } from "./search-utils";
